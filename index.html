@@ -278,6 +278,10 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   .lv{min-height:92px;padding:10px}
   .lv .n{font-size:21px}.lv .t{font-size:11px}
   #objective{max-width:52vw;font-size:11.5px;padding:9px 11px}
+  #parPill{display:none}
+  .hudtop{gap:6px;padding:8px 10px}
+  .hudtop .btn.sm{padding:.4em .6em;font-size:11.5px}
+  .hudtop .soundToggle{display:none}
   #inv{max-width:44vw}
   .avgrid{grid-template-columns:repeat(auto-fill,minmax(132px,1fr))}
   .av canvas{width:78px;height:78px}
@@ -297,7 +301,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
     <div class="spacer"></div>
     <div class="coinchip"><i class="c"></i><span id="coinVal">0</span></div>
     <button class="btn sm" id="hintBtn">Hints <span id="hintCount"></span></button>
-    <button class="btn sm" id="pauseBtn">Menu</button>
+    <button class="btn sm soundToggle" title="Toggle sound">Sound: On</button>
+    <button class="btn sm" id="pauseBtn">Pause</button>
+    <button class="btn sm" id="quitBtn">Quit</button>
   </div>
   <div id="crosshair"><i></i><i></i><i></i><i></i></div>
   <div id="prompt"></div>
@@ -326,6 +332,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
       <button class="btn" id="btnLevels">Select Level</button>
       <button class="btn" id="btnAvatars">Avatars</button>
       <button class="btn ghost" id="btnHow">How to Play</button>
+      <button class="btn ghost soundToggle">Sound: On</button>
     </div>
     <div class="progbar"><i id="titleProg"></i></div>
     <div class="eyebrow" id="titleProgTxt" style="letter-spacing:.2em;margin-left:.2em;margin-top:8px">0 / 32 ROOMS ESCAPED</div>
@@ -415,7 +422,11 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
       <button class="btn" id="pRestart">Restart Room</button>
       <button class="btn" id="pHints">Hints</button>
     </div>
-    <button class="btn ghost" id="pQuit">Leave to Menu</button>
+    <button class="btn soundToggle">Sound: On</button>
+    <div class="row">
+      <button class="btn ghost" id="pQuit">Level Select</button>
+      <button class="btn ghost" id="pQuitTitle">Quit to Title</button>
+    </div>
   </div>
 </div></div>
 
@@ -477,12 +488,12 @@ const Audio_={ctx:null,on:true,
    ============================================================ */
 const SAVE_KEY="lockedArchive.v1";
 const Save={
-  d:{coins:0,unlocked:1,best:{},stars:{},avatar:"rookie",owned:["rookie"],seen:false,plays:0},
+  d:{coins:0,unlocked:1,best:{},stars:{},avatar:"rookie",owned:["rookie"],seen:false,plays:0,sound:true},
   load(){ try{ const r=localStorage.getItem(SAVE_KEY); if(r)Object.assign(this.d,JSON.parse(r)); }catch(e){}
           if(!this.d.owned.includes("rookie"))this.d.owned.push("rookie"); return this.d; },
   save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(this.d)); }catch(e){} },
   addCoins(n){ this.d.coins=Math.max(0,this.d.coins+n); this.save(); UI.syncCoins(); },
-  reset(){ this.d={coins:0,unlocked:1,best:{},stars:{},avatar:"rookie",owned:["rookie"],seen:false,plays:0}; this.save(); }
+  reset(){ this.d={coins:0,unlocked:1,best:{},stars:{},avatar:"rookie",owned:["rookie"],seen:false,plays:0,sound:true}; this.save(); }
 };
 
 /* ============================================================
@@ -680,459 +691,637 @@ const ACTS=[
 ];
 
 const LEVELS=[
-/* ---------------- ACT I : THE CELLAR ---------------- */
-{name:"The Cold Room", th:"cellar", sz:[9,9], par:75, door:{w:"n",u:.5,req:["exit"]},
- obj:"The door needs its iron key.",
- hints:["The room is small. Walk the walls, and look down as well as up.",
-        "Something is lying on the floor beneath the hanging lamp.",
-        "The iron key is on the floor under the lamp in the far corner. Look at it and press E."],
+/* ================= ACT I : THE CELLAR ================= */
+{name:"The Cold Room", th:"cellar", sz:[11,10], par:165, door:{w:"n",u:.5,req:["sealA","sealB"]},
+ obj:"Two seals. The key does not open the door.",
+ hints:["Two seals. The key opens the chest — and the chest tells you what the levers want.",
+        "The key is on the floor, under the hanging lamp in the far corner.",
+        "Chest first, then set the levers: 1 down, 2 up, 3 up."],
  objs:[
-  {t:"note",w:"s",u:.5,y:1.5,name:"Scratched Plaque",txt:"So it begins.\n\nThe key sleeps where the light falls.\n\nNothing here is a trick yet."},
-  {t:"key",f:[2.6,-2.6],name:"Iron Key",col:0x9aa3aa,set:["exit"]},
-  {t:"prop",kind:"lamp",f:[2.6,-2.6]},
-  {t:"prop",kind:"crate",f:[-2.8,2.4],ry:.4},{t:"prop",kind:"barrel",f:[-3,-2.2]}
+  {t:"note",w:"s",u:.5,y:1.5,name:"Scratched Plaque",txt:"So it begins.\n\nThe key sleeps where the light falls.\nWhat the key opens is not the door.\n\nTwo seals hold this room."},
+  {t:"note",w:"w",u:.35,y:1.5,name:"Chalk, half-rubbed",txt:"three handles on the east wall.\n\nthe chest knows the order.\ni do not, and they took my hands."},
+  {t:"key",f:[3.6,-3.2],name:"Iron Key",col:0x9aa3aa,set:["key_iron"]},
+  {t:"prop",kind:"lamp",f:[3.6,-3.2]},
+  {t:"container",kind:"chest",f:[-3.4,2.8],ry:.3,req:["key_iron"],set:["sealA"],
+   lock:"A stout iron padlock. There is a key for this somewhere.",
+   found:"Inside: a folded rag and a brass token, stamped with three marks —\n\n        DOWN   UP   UP"},
+  {t:"levers",w:"e",u:.5,n:3,target:[0,1,1],set:["sealB"]},
+  {t:"prop",kind:"crate",f:[-3.4,-2.6],ry:.4},{t:"prop",kind:"barrel",f:[-4.4,-.6]},
+  {t:"prop",kind:"table",f:[0,3.4]}
  ]},
 
-{name:"Three Digits", th:"cellar", sz:[10,9], par:105, door:{w:"n",u:.5,req:["exit"]},
- obj:"Enter the code on the door panel.",
- hints:["There is a written page on one of the walls. It is not decoration.",
-        "The ledger counts things in words. Read the counts in the order they are listed.",
-        "The code is 4 7 2. Punch it into the keypad beside the door."],
+{name:"Three Digits", th:"cellar", sz:[13,11], par:230, door:{w:"n",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"A code, three shards, and a catch.",
+ hints:["Three seals: the keypad, three glass shards, and a catch hidden low on a wall.",
+        "The ledger does not give you numbers. It tells you what to count — count them in this room.",
+        "Four barrels, seven crates, two lamps: the code is 472. The catch is low on the west wall, behind the barrels."],
  objs:[
-  {t:"note",w:"e",u:.4,y:1.5,name:"Ledger Page",txt:"INVENTORY, LOWER STORE\n\nfour barrels of salt\nseven crates of tallow\ntwo lamps, unlit\n\nRead it in that order and the door will believe you."},
-  {t:"keypad",w:"n",u:.74,y:1.35,code:"472",set:["exit"],sub:"Three digits. The panel is warm."},
-  {t:"prop",kind:"barrel",f:[-3.4,-2.4]},{t:"prop",kind:"barrel",f:[-3.4,-1.2]},
-  {t:"prop",kind:"crate",f:[3.2,2.2],ry:.2},{t:"prop",kind:"crate",f:[2.2,2.6],ry:-.5},
-  {t:"prop",kind:"shelf",w:"w",u:.5}
+  {t:"note",w:"e",u:.26,y:1.5,name:"Ledger Page",txt:"INVENTORY, LOWER STORE\n\n  first, as many barrels as stand here.\n  then, as many crates.\n  then, as many lamps.\n\nThree digits. Count them yourself."},
+  {t:"note",w:"e",u:.66,y:1.5,name:"Second Note",txt:"One of the three seals is not a puzzle at all.\n\nIt is a catch. Low on the west wall,\nbehind something heavy."},
+  {t:"keypad",w:"s",u:.5,y:1.35,code:"472",set:["sealA"],sub:"Three digits. The panel is warm."},
+  {t:"gems",set:["sealB"],pts:[[-2.4,.6,4.2],[5.0,1.25,-4.0],[0,.6,-4.6]]},
+  {t:"switch",w:"w",u:.2,y:.34,set:["sealC"],name:"Wall Catch"},
+  {t:"prop",kind:"barrel",f:[-5.6,2.2]},{t:"prop",kind:"barrel",f:[-5.6,1.0]},
+  {t:"prop",kind:"barrel",f:[-5.6,-.2]},{t:"prop",kind:"barrel",f:[-5.6,-1.4]},
+  {t:"prop",kind:"crate",f:[5.0,-4.0]},{t:"prop",kind:"crate",f:[5.0,-2.8]},
+  {t:"prop",kind:"crate",f:[3.8,-4.0]},{t:"prop",kind:"crate",f:[5.0,3.4]},
+  {t:"prop",kind:"crate",f:[3.8,3.4]},{t:"prop",kind:"crate",f:[5.0,2.2]},
+  {t:"prop",kind:"crate",f:[-4.4,4.0]},
+  {t:"prop",kind:"lamp",f:[0,3.6]},{t:"prop",kind:"lamp",f:[-2.0,-3.6]}
  ]},
 
-{name:"Four Levers", th:"brickwork", sz:[10,10], par:130, door:{w:"e",u:.5,req:["exit"]},
- obj:"Set the four levers correctly.",
- hints:["There is a rhyme on the wall opposite the levers.",
-        "Read the rhyme left to right: the outer two point one way, the inner two the other.",
-        "Down, up, up, down — levers 1 and 4 down, levers 2 and 3 up."],
+{name:"Four Levers", th:"brickwork", sz:[13,12], par:255, door:{w:"e",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"Levers, buttons, and the floor.",
+ hints:["Three mechanisms, three written clues. The flagstone in the middle of the floor is one of them.",
+        "The floor stones are numbered on their faces — step them in the order the flagstone gives.",
+        "Levers down-up-up-down · buttons 2·4·1·3 · stones 2, then 3, then 1."],
  objs:[
-  {t:"note",w:"s",u:.5,y:1.5,name:"Rhyme, painted",txt:"The ends bow low,\nthe middle stands.\nFour hands agree\nand out you go."},
-  {t:"levers",w:"n",u:.5,n:4,target:[0,1,1,0],set:["exit"]},
-  {t:"prop",kind:"pillar",f:[-3.6,-3.4]},{t:"prop",kind:"pillar",f:[-3.6,3.4]},
-  {t:"prop",kind:"barrel",f:[3.2,-3.2]}
+  {t:"note",w:"s",u:.24,y:1.5,name:"Rhyme, painted",txt:"The ends bow low,\nthe middle stands.\nFour hands agree\nand out you go."},
+  {t:"note",w:"s",u:.72,y:1.5,name:"Second Verse",txt:"Then press, in turn:\nthe second, the fourth,\nthe first, the third."},
+  {t:"levers",w:"n",u:.28,n:4,target:[0,1,1,0],set:["sealA"]},
+  {t:"btnseq",kind:"button",w:"n",u:.74,n:4,order:[2,4,1,3],set:["sealB"]},
+  {t:"note",f:[0,0],y:.06,name:"Carved Flagstone",txt:"The stones are numbered.\n\n   SECOND.  THIRD.  FIRST.\n\nOut of order and they sink again."},
+  {t:"plates",set:["sealC"],pts:[[-4.2,3.8],[0,3.8],[4.2,3.8]],order:[1,2,0]},
+  {t:"prop",kind:"pillar",f:[-4.6,-3.8]},{t:"prop",kind:"pillar",f:[4.6,-3.8]},
+  {t:"prop",kind:"barrel",f:[-5.4,.6]},{t:"prop",kind:"crate",f:[5.2,1.4]}
  ]},
 
-{name:"Scattered Light", th:"cellar", sz:[12,10], par:145, door:{w:"s",u:.5,req:["exit"]},
- obj:"Collect all four shards.",
- hints:["Four shards, and only one of them is at eye level on the floor.",
-        "Check on top of the crate, on the shelf, and low behind the pillar.",
-        "Shards: floor centre-left, on top of the crate, tucked behind the west pillar, and up on the east shelf."],
+{name:"Scattered Light", th:"cellar", sz:[15,12], par:300, door:{w:"s",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"Six shards. Then what the shards buy you.",
+ hints:["Six shards. Only two of them are on open floor — check on top of things, and behind things.",
+        "The chest will not open until every shard is in your hand, and the chest tells you about the board.",
+        "Shards: floor west, on the crate, behind the west pillar, on the east shelf, on the table, floor east. Then press the four edge cells of the light board."],
  objs:[
-  {t:"note",w:"n",u:.5,y:1.5,name:"Chalk Note",txt:"Four pieces of the same lamp.\nThe door counts them;\nit does not care in what order."},
-  {t:"gems",set:["exit"],pts:[[-3.6,.6,.5],[1.4,1.25,-3.2],[-5.1,.6,-3.6],[5.6,2.0,2.5]]},
-  {t:"prop",kind:"crate",f:[1.4,-3.2]},{t:"prop",kind:"pillar",f:[-4.6,-3.6]},
-  {t:"prop",kind:"shelf",w:"e",u:.75},{t:"prop",kind:"barrel",f:[4.4,-1.4]}
+  {t:"note",w:"n",u:.28,y:1.5,name:"Chalk Note",txt:"Six pieces of the same lamp.\nThe chest counts them; it does not care in what order.\n\nWhat the chest holds is a card,\nand the card is about the board."},
+  {t:"gems",set:["sealA"],pts:[[-5.8,.6,1.4],[2.0,1.25,-4.2],[-6.6,.6,-4.4],
+                               [6.1,2.0,2.4],[1.2,.95,3.6],[5.4,.6,-1.2]]},
+  {t:"container",kind:"chest",f:[-2.8,3.8],ry:.25,req:["sealA"],set:["sealB"],
+   lock:"The lid is pinned. Every shard, first.",
+   found:"A card, in a careful hand:\n\n  THE BOARD — a touch flips a cell\n  and its four neighbours.\n\n  Press the four EDGE cells:\n  top, left, right, bottom."},
+  {t:"lights",w:"w",u:.5,y:1.4,n:3,scr:[1,3,5,7],set:["sealC"],sub:"Nine glass cells in an iron frame."},
+  {t:"prop",kind:"crate",f:[2.0,-4.2]},{t:"prop",kind:"pillar",f:[-6.2,-4.4]},
+  {t:"prop",kind:"shelf",w:"e",u:.7},{t:"prop",kind:"table",f:[1.2,3.6]},
+  {t:"prop",kind:"barrel",f:[6.2,-3.8]},{t:"prop",kind:"pillar",f:[-6.2,3.4]}
  ]},
 
-{name:"The Locked Chest", th:"brickwork", sz:[11,10], par:170, door:{w:"n",u:.5,req:["exit"]},
- obj:"The chest holds the key. The chest wants a code.",
- hints:["Two things, in order: open the chest, then open the door.",
-        "The tally sheet gives you a subtraction, then tells you to count something in the room.",
-        "90 − 9 = 81, and there are 3 barrels. Code 813. Then take the key from the chest."],
+{name:"The Locked Chest", th:"brickwork", sz:[14,12], par:330, door:{w:"s",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"A chain of three, and two locks it answers.",
+ hints:["A chain: the keypad opens the chest, the chest holds a brass key, the key opens the cabinet.",
+        "The chest and the cabinet each hand you the answer to one of the other two seals.",
+        "Keypad 813 (ninety less nine, then three barrels). Rings ☀ ⚷ ☾. Levers down-up-down-up."],
  objs:[
-  {t:"note",w:"w",u:.35,y:1.5,name:"Tally Sheet",txt:"ninety, less nine.\nthen count the barrels in this room.\n\nthree digits. no spaces."},
-  {t:"keypad",w:"w",u:.72,y:1.35,code:"813",set:["chest"],sub:"A small brass panel wired down into the floor."},
-  {t:"container",kind:"chest",f:[2.4,2.6],ry:-.3,req:["chest"],set:["exit"],
+  {t:"note",w:"w",u:.22,y:1.5,name:"Tally Sheet",txt:"ninety, less nine.\nthen count the barrels in this room.\n\nthree digits. no spaces."},
+  {t:"keypad",w:"w",u:.58,y:1.35,code:"813",set:["chestOpen"],sub:"A brass panel wired down into the floor."},
+  {t:"container",kind:"chest",f:[3.8,3.4],ry:-.3,req:["chestOpen"],set:["key_brass"],
    lock:"The lid will not lift. A brass panel on the west wall is wired to it.",
-   found:"Inside, on folded velvet: a heavy iron key."},
-  {t:"prop",kind:"barrel",f:[-4,-2.6]},{t:"prop",kind:"barrel",f:[-4,-1.4]},{t:"prop",kind:"barrel",f:[-4,-.2]},
-  {t:"prop",kind:"crate",f:[4,-3]},{t:"prop",kind:"table",f:[0,-2.8]}
+   found:"A heavy brass key — and a slip of paper:\n\n   the rings want SUN, then KEY, then MOON."},
+  {t:"container",kind:"cabinet",w:"e",u:.32,req:["key_brass"],set:["sealA"],
+   lock:"Locked. A brass keyhole, and no key in it.",
+   found:"A house key on a nail. Pinned behind it, a card:\n\n   THE LEVERS —  X  O  X  O\n   (X lowered, O raised)"},
+  {t:"dials",w:"n",u:.28,y:1.4,syms:["☀","☾","✦","⚷","✜"],target:[0,3,1],set:["sealB"],
+   sub:"Three brass rings, five marks each."},
+  {t:"levers",w:"n",u:.74,n:4,target:[0,1,0,1],set:["sealC"]},
+  {t:"prop",kind:"barrel",f:[-5.8,-3.4]},{t:"prop",kind:"barrel",f:[-5.8,-2.2]},
+  {t:"prop",kind:"barrel",f:[-5.8,-1.0]},
+  {t:"prop",kind:"crate",f:[5.6,-3.6]},{t:"prop",kind:"table",f:[0,1.2]}
  ]},
 
-{name:"Order of Pressing", th:"cellar", sz:[11,11], par:180, door:{w:"e",u:.5,req:["exit"]},
- obj:"Press the five buttons in the right order.",
- hints:["The order is written on the west wall, under the words.",
-        "The buttons are numbered. The line gives you those numbers directly.",
-        "The order is 3 · 1 · 5 · 2 · 4. Get it wrong and the row resets."],
+{name:"Order of Pressing", th:"cellar", sz:[14,13], par:340, door:{w:"e",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"Six buttons, four stones, one panel.",
+ hints:["Three seals: the six buttons, the four floor stones, and the panel by the door.",
+        "The order you walk the stones is also the number the panel wants.",
+        "Buttons 3·1·5·2·6·4. Stones 3, 1, 4, 2 — so the panel code is 3142."],
  objs:[
-  {t:"note",w:"w",u:.5,y:1.5,name:"Charcoal Line",txt:"THE   A   BLOCK   OF   IRON\n 3    1     5      2     4\n\nThe numbers under the words\nare the order of the buttons."},
-  {t:"btnseq",kind:"button",w:"n",u:.5,n:5,order:[3,1,5,2,4],set:["exit"]},
-  {t:"prop",kind:"pillar",f:[-3.8,3.6]},{t:"prop",kind:"crate",f:[3.6,3.4],ry:.3},
-  {t:"prop",kind:"barrel",f:[-4.2,-3.4]}
+  {t:"note",w:"w",u:.5,y:1.5,name:"Charcoal Line",txt:"THE   A   BLOCK   OF   OLD   IRON\n 3    1     5      2     6     4\n\nThe numbers under the words\nare the order of the buttons."},
+  {t:"btnseq",kind:"button",w:"n",u:.3,n:6,order:[3,1,5,2,6,4],set:["sealA"]},
+  {t:"note",f:[0,-1.2],y:.06,name:"Carved Flagstone",txt:"The stones are numbered.\n\n  THIRD.  FIRST.  FOURTH.  SECOND.\n\nThe panel wants the same,\nwritten as one number."},
+  {t:"plates",set:["sealB"],pts:[[-4.8,3.6],[-1.6,3.6],[1.6,3.6],[4.8,3.6]],order:[2,0,3,1]},
+  {t:"keypad",w:"n",u:.74,y:1.35,code:"3142",set:["sealC"],sub:"Four digits."},
+  {t:"prop",kind:"pillar",f:[-5.2,-4.2]},{t:"prop",kind:"pillar",f:[5.2,-4.2]},
+  {t:"prop",kind:"crate",f:[-5.6,.8]},{t:"prop",kind:"barrel",f:[5.6,.8]}
  ]},
 
-{name:"Lights Out", th:"brickwork", sz:[10,10], par:210, door:{w:"s",u:.5,req:["exit"]},
- obj:"Light every cell on the panel.",
- hints:["Pressing a cell flips it and its four neighbours — not the diagonals.",
-        "The four cells you need are the ones that are currently dark.",
-        "Press the four edge cells: top-middle, left-middle, right-middle, bottom-middle."],
+{name:"Lights Out", th:"brickwork", sz:[13,13], par:360, door:{w:"s",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"Light the board, close the circuit, find the glass.",
+ hints:["Three seals: the light board, the terminal block, and four shards.",
+        "The wiring legend is deliberately not colour-matched. Read it and obey it exactly.",
+        "Board: press the four edge cells. Wires: RED→IV, BLUE→III, GREEN→I, AMBER→II."],
  objs:[
-  {t:"note",w:"e",u:.4,y:1.5,name:"Instruction Card",txt:"A touch spreads.\nWhat you press, and everything it touches, changes.\n\nAll nine must burn."},
-  {t:"lights",w:"n",u:.5,y:1.4,n:3,scr:[1,3,5,7],set:["exit"],sub:"Nine glass cells in an iron frame."},
-  {t:"prop",kind:"pillar",f:[3.6,-3.6]},{t:"prop",kind:"pillar",f:[-3.6,-3.6]},
-  {t:"prop",kind:"crate",f:[3.4,3.2]}
+  {t:"note",w:"e",u:.26,y:1.5,name:"Instruction Card",txt:"A touch spreads.\nWhat you press, and everything it touches, changes.\n\nAll nine must burn."},
+  {t:"note",w:"e",u:.68,y:1.5,name:"Wiring Legend",txt:"REVISED WIRING — DO NOT MATCH BY COLOUR\n\n  RED    → socket IV\n  BLUE   → socket III\n  GREEN  → socket I\n  AMBER  → socket II"},
+  {t:"lights",w:"n",u:.3,y:1.4,n:3,scr:[1,3,5,7],set:["sealA"],sub:"Nine glass cells in an iron frame."},
+  {t:"wires",w:"n",u:.74,y:1.4,set:["sealB"],
+   left:[{n:"RED",c:"#e0574f"},{n:"BLUE",c:"#5b8cff"},{n:"GREEN",c:"#5fd08a"},{n:"AMBER",c:"#f2a93b"}],
+   right:["I","II","III","IV"],map:[3,2,0,1],
+   sub:"Four leads, four sockets. Click a lead, then click its socket."},
+  {t:"gems",set:["sealC"],pts:[[-5.4,.6,3.6],[5.4,1.25,-3.6],[0,.95,2.2],[-5.4,.6,-2.4]]},
+  {t:"prop",kind:"crate",f:[5.4,-3.6]},{t:"prop",kind:"table",f:[0,2.2]},
+  {t:"prop",kind:"pillar",f:[-5.0,-4.6]},{t:"prop",kind:"pillar",f:[5.0,4.6]}
  ]},
 
-{name:"The Stair Below", th:"cellar", sz:[12,12], par:260, door:{w:"n",u:.5,req:["sealA","sealB"]},
- obj:"Two seals hold the door. Release both.",
- hints:["Two independent mechanisms. The portrait on the east wall is hiding one of them.",
-        "The two torn notes make one four-digit number. The floor stones are numbered — the flagstone says which order.",
-        "Safe code 2140. Stones: 3, then 1, then 2."],
+{name:"The Stair Below", th:"cellar", sz:[16,14], par:450, door:{w:"n",u:.72,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Four seals. The cellar does not let go easily.",
+ hints:["Four seals: a safe, the floor stones, the breaker bank, and five shards.",
+        "The portrait on the east wall is hiding the safe. The two torn notes make one four-digit number.",
+        "Safe 2140 · stones 4, 2, 1, 3 · breakers up-down-up-up-down · then the five shards."],
  objs:[
-  {t:"note",w:"w",u:.25,y:1.5,name:"Torn Note (top)",txt:"…the year they sealed it was\n\ntwenty-one hundred…"},
-  {t:"note",w:"w",u:.62,y:1.5,name:"Torn Note (bottom)",txt:"…and forty more days\nbefore anyone noticed.\n\nfour digits, in the order you read them."},
-  {t:"painting",w:"e",u:.4,y:1.55,set:["safeSeen"],art:"portrait",
+  {t:"note",w:"w",u:.2,y:1.5,name:"Torn Note (top)",txt:"…the year they sealed it was\n\ntwenty-one hundred…"},
+  {t:"note",w:"w",u:.55,y:1.5,name:"Torn Note (bottom)",txt:"…and forty more days\nbefore anyone noticed.\n\nfour digits, in the order you read them."},
+  {t:"note",w:"w",u:.85,y:1.5,name:"Schematic",txt:"BREAKER BANK, left to right:\n\n    O   X   O   O   X\n\n(O raised, X lowered)"},
+  {t:"painting",w:"e",u:.3,y:1.55,set:["safeSeen"],art:"portrait",
    reveal:"The frame swings aside. There is a safe set into the brick."},
-  {t:"keypad",w:"e",u:.4,y:1.5,code:"2140",req:["safeSeen"],hide:"safeSeen",set:["sealA"],sub:"The safe behind the portrait."},
-  {t:"note",f:[0,-.9],y:.06,name:"Carved Flagstone",txt:"The stones are numbered.\n\nTHIRD, then FIRST, then SECOND.\n\nOut of order and they sink again."},
-  {t:"plates",set:["sealB"],pts:[[-3.4,3.6],[0,1.2],[3.4,-3.2]],order:[2,0,1]},
-  {t:"prop",kind:"pillar",f:[-4.4,-4.2]},{t:"prop",kind:"pillar",f:[4.4,4.2]},
-  {t:"prop",kind:"barrel",f:[-4.6,1.8]},{t:"prop",kind:"crate",f:[4.4,-1.6]}
+  {t:"keypad",w:"e",u:.3,y:1.5,code:"2140",req:["safeSeen"],hide:"safeSeen",set:["sealA"],
+   sub:"The safe behind the portrait."},
+  {t:"note",f:[0,-1.4],y:.06,name:"Carved Flagstone",txt:"The stones are numbered.\n\n  FOURTH. SECOND. FIRST. THIRD."},
+  {t:"plates",set:["sealB"],pts:[[-5.4,4.2],[-1.8,4.2],[1.8,4.2],[5.4,4.2]],order:[3,1,0,2]},
+  {t:"levers",w:"n",u:.28,n:5,target:[1,0,1,1,0],set:["sealC"]},
+  {t:"gems",set:["sealD"],pts:[[-6.8,.6,1.0],[6.8,.6,-2.0],[-3.2,1.25,-5.2],
+                               [6.8,1.25,1.6],[0,.95,1.4]]},
+  {t:"prop",kind:"crate",f:[-3.2,-5.2]},{t:"prop",kind:"crate",f:[6.8,1.6]},
+  {t:"prop",kind:"table",f:[0,1.4]},
+  {t:"prop",kind:"pillar",f:[-6.6,-5.4]},{t:"prop",kind:"pillar",f:[6.6,-5.4]},
+  {t:"prop",kind:"barrel",f:[-6.8,-2.6]}
  ]},
 
-/* ---------------- ACT II : THE MANOR ---------------- */
-{name:"The Study", th:"manor", sz:[12,11], par:190, door:{w:"n",u:.5,req:["exit"]},
- obj:"Set the four symbol dials.",
- hints:["The bookplate names four things, in order. Each has a mark on the rings.",
-        "Sun, moon, star, key — exactly the order the bookplate reads.",
-        "Turn the dials to ☀ ☾ ✦ ⚷ , left to right."],
+/* ================= ACT II : THE MANOR ================= */
+{name:"The Study", th:"manor", sz:[15,13], par:380, door:{w:"n",u:.74,req:["sealA","sealB","sealC"]},
+ obj:"The rings open the cabinet. The cabinet gives you the rest.",
+ hints:["Start with the rings — the bookplate on the south wall names them, in order.",
+        "The cabinet holds the card with the keypad code on it. The reading list is the book order.",
+        "Rings ☀ ☾ ✦ ⚷ · keypad 5194 · books 4·2·6·1·5·3."],
  objs:[
-  {t:"note",w:"s",u:.35,y:1.5,name:"Bookplate",txt:"Ex libris.\n\nBy sun I read,\nby moon I write,\nby star I sleep,\nby key I leave."},
-  {t:"dials",w:"e",u:.5,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[0,1,2,3],set:["exit"],
+  {t:"note",w:"s",u:.24,y:1.5,name:"Bookplate",txt:"Ex libris.\n\nBy sun I read,\nby moon I write,\nby star I sleep,\nby key I leave."},
+  {t:"note",w:"s",u:.66,y:1.5,name:"Reading List",txt:"in this order, and no other:\n\n  IV   II   VI   I   V   III"},
+  {t:"dials",w:"e",u:.28,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[0,1,2,3],set:["cabOpen"],
    sub:"Four brass rings, each cut with six marks."},
-  {t:"prop",kind:"desk",f:[-2.4,2.4],ry:.2},{t:"prop",kind:"chair",f:[-2.4,1.1]},
-  {t:"prop",kind:"bookcase",w:"w",u:.35},{t:"prop",kind:"bookcase",w:"w",u:.7},
-  {t:"prop",kind:"lamp",f:[-2.4,2.4]}
+  {t:"container",kind:"cabinet",w:"e",u:.72,req:["cabOpen"],set:["sealA"],
+   lock:"Pinned shut from the inside. The rings on this wall are wired to it.",
+   found:"A visiting card, face down. On the back, in pencil:\n\n            5 1 9 4"},
+  {t:"keypad",w:"w",u:.28,y:1.35,code:"5194",req:["cabOpen"],set:["sealB"],
+   lock:"Dead. Nothing behind it is awake yet.",sub:"Four digits."},
+  {t:"btnseq",kind:"book",w:"n",u:.28,n:6,order:[4,2,6,1,5,3],set:["sealC"]},
+  {t:"prop",kind:"desk",f:[-3.0,3.0],ry:.2},{t:"prop",kind:"chair",f:[-3.0,1.7]},
+  {t:"prop",kind:"bookcase",w:"w",u:.62},{t:"prop",kind:"bookcase",w:"w",u:.86},
+  {t:"prop",kind:"lamp",f:[-3.0,3.0]},{t:"prop",kind:"table",f:[3.4,3.4]}
  ]},
 
-{name:"Simon's Parlour", th:"library", sz:[11,11], par:200, door:{w:"e",u:.5,req:["exit"]},
- obj:"Repeat the colour sequence.",
- hints:["Interact with the case to start it. Watch the whole run before you touch anything.",
-        "It grows by one colour each round. Four rounds and it opens.",
-        "If you lose the thread, close it and start again — it always replays from the beginning."],
+{name:"Simon's Parlour", th:"library", sz:[14,13], par:400, door:{w:"e",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Two things to remember, one to count, one to find.",
+ hints:["Four seals: the sequencer, the pattern panel, a keypad, and a catch nobody meant you to find.",
+        "The keypad's note tells you to count furniture. Count carefully — bookcases, chairs, tables, lamps.",
+        "Three bookcases, two chairs, one table, one lamp: 3211. The catch is low on the south wall."],
  objs:[
-  {t:"note",w:"n",u:.5,y:1.5,name:"Card on a String",txt:"It will show you.\nThen it will ask.\n\nFour times."},
-  {t:"simon",w:"s",u:.5,y:1.4,len:4,set:["exit"],sub:"Four stained-glass panes in a walnut case."},
-  {t:"prop",kind:"bookcase",w:"w",u:.3},{t:"prop",kind:"bookcase",w:"w",u:.65},
-  {t:"prop",kind:"table",f:[0,-2.6]},{t:"prop",kind:"chair",f:[1.4,-2.6],ry:1.4}
+  {t:"note",w:"n",u:.26,y:1.5,name:"Card on a String",txt:"It will show you.\nThen it will ask.\n\nFour times, and then again in glass."},
+  {t:"note",w:"n",u:.7,y:1.5,name:"Inventory Slip",txt:"THE PANEL, four digits:\n\n  bookcases in this room,\n  then chairs,\n  then tables,\n  then lamps.\n\n(And there is a catch on the south wall,\n low down, where nobody looks.)"},
+  {t:"simon",w:"s",u:.3,y:1.4,len:4,set:["sealA"],sub:"Four stained-glass panes in a walnut case."},
+  {t:"memory",w:"s",u:.72,y:1.4,n:4,rounds:3,set:["sealB"],sub:"Sixteen milk-glass panes in a lead frame."},
+  {t:"keypad",w:"w",u:.5,y:1.35,code:"3211",set:["sealC"],sub:"Four digits."},
+  {t:"switch",w:"s",u:.52,y:.32,set:["sealD"],name:"Skirting Catch"},
+  {t:"prop",kind:"bookcase",w:"n",u:.5},{t:"prop",kind:"bookcase",w:"w",u:.22},
+  {t:"prop",kind:"bookcase",w:"w",u:.78},
+  {t:"prop",kind:"table",f:[0,-1.0]},{t:"prop",kind:"chair",f:[1.6,-1.0],ry:1.4},
+  {t:"prop",kind:"chair",f:[-1.6,-1.0],ry:-1.4},{t:"prop",kind:"lamp",f:[0,-1.0]}
  ]},
 
-{name:"The Bookshelf", th:"library", sz:[12,11], par:220, door:{w:"s",u:.5,req:["exit"]},
- obj:"Pull the six books in the correct order.",
- hints:["The reading list on the west wall is the order. The books are numbered on their spines.",
-        "The list is in Roman numerals — convert them and pull the books top to bottom.",
-        "The order is 4 · 2 · 6 · 1 · 5 · 3."],
+{name:"The Bookshelf", th:"library", sz:[15,13], par:400, door:{w:"s",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Books, a word, the floor, and four shards.",
+ hints:["Four seals. The reading list is in Roman numerals; the riddle answer is five letters.",
+        "A thing you write with, cut from a bird. It is also what the room is full of.",
+        "Books 4·2·6·1·5·3 · word QUILL · stones 2, 1, 3 · four shards."],
  objs:[
-  {t:"note",w:"w",u:.4,y:1.5,name:"Reading List",txt:"in this order, and no other:\n\n  IV\n  II\n  VI\n  I\n  V\n  III"},
-  {t:"btnseq",kind:"book",w:"n",u:.5,n:6,order:[4,2,6,1,5,3],set:["exit"]},
-  {t:"prop",kind:"desk",f:[2.8,2.6],ry:-.3},{t:"prop",kind:"lamp",f:[2.8,2.6]},
-  {t:"prop",kind:"bookcase",w:"e",u:.4},{t:"prop",kind:"chair",f:[2.8,1.3],ry:3}
+  {t:"note",w:"w",u:.24,y:1.5,name:"Reading List",txt:"in this order, and no other:\n\n  IV   II   VI   I   V   III"},
+  {t:"note",w:"w",u:.66,y:1.5,name:"Riddle, framed",txt:"I was taken from something that flew.\nI was split, and dipped, and made to talk.\nEvery word in this house came out of me.\n\nFive letters."},
+  {t:"btnseq",kind:"book",w:"n",u:.3,n:6,order:[4,2,6,1,5,3],set:["sealA"]},
+  {t:"word",w:"e",u:.3,y:1.4,answer:"QUILL",set:["sealB"],sub:"Five ivory wheels, each carrying the alphabet."},
+  {t:"note",f:[0,0],y:.06,name:"Inlaid Brass",txt:"The stones are numbered.\n\n   SECOND.  FIRST.  THIRD."},
+  {t:"plates",set:["sealC"],pts:[[-4.6,4.0],[0,4.0],[4.6,4.0]],order:[1,0,2]},
+  {t:"gems",set:["sealD"],pts:[[-6.4,.6,-4.6],[6.4,.6,2.2],[2.8,.95,-3.4],[-6.4,2.0,.6]]},
+  {t:"prop",kind:"desk",f:[2.8,-3.4],ry:-.3},{t:"prop",kind:"lamp",f:[2.8,-3.4]},
+  {t:"prop",kind:"bookcase",w:"e",u:.72},{t:"prop",kind:"shelf",w:"w",u:.44},
+  {t:"prop",kind:"chair",f:[2.8,-2.0],ry:3}
  ]},
 
-{name:"Word Lock", th:"manor", sz:[11,11], par:220, door:{w:"n",u:.5,req:["exit"]},
- obj:"Spell the answer on the letter lock.",
- hints:["The framed riddle has a one-word answer. Five letters.",
+{name:"Word Lock", th:"manor", sz:[14,13], par:400, door:{w:"n",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Spell it, set the rings, light the board, open the chest.",
+ hints:["Four seals, and the chest will not open until the word is spelled.",
         "Black bird. Forgets nothing. Was in this house before the locks were.",
-        "The word is RAVEN."],
+        "RAVEN · rings ✦ ☾ ⚷ · board: press the four corners · then the chest."],
  objs:[
-  {t:"note",w:"s",u:.5,y:1.5,name:"Riddle, framed",txt:"I am black and I am patient.\nI keep every face I have seen.\nI was in this house before the locks were,\nand I will be here after.\n\nFive letters."},
-  {t:"word",w:"e",u:.5,y:1.4,answer:"RAVEN",set:["exit"],sub:"Five ivory wheels, each carrying the alphabet."},
-  {t:"prop",kind:"bookcase",w:"w",u:.5},{t:"prop",kind:"table",f:[0,2.6]},
-  {t:"prop",kind:"chair",f:[-1.5,2.6],ry:1.6},{t:"prop",kind:"lamp",f:[0,2.6]}
+  {t:"note",w:"s",u:.26,y:1.5,name:"Riddle, framed",txt:"I am black and I am patient.\nI keep every face I have seen.\nI was in this house before the locks were,\nand I will be here after.\n\nFive letters."},
+  {t:"note",w:"s",u:.7,y:1.5,name:"Housekeeper's Note",txt:"THE RINGS: star, then moon, then key.\n\nTHE BOARD: a touch flips a cell and its\nfour neighbours. All nine must burn.\nThe corners are kinder than the edges."},
+  {t:"word",w:"e",u:.3,y:1.4,answer:"RAVEN",set:["sealA"],sub:"Five ivory wheels."},
+  {t:"dials",w:"e",u:.72,y:1.4,syms:["☀","☾","✦","⚷","✜"],target:[2,1,3],set:["sealB"],
+   sub:"Three rings, five marks each."},
+  {t:"lights",w:"w",u:.5,y:1.4,n:3,scr:[0,2,6,8],set:["sealC"],sub:"Nine cells behind wired glass."},
+  {t:"container",kind:"chest",f:[0,3.6],ry:.15,req:["sealA"],set:["sealD"],
+   lock:"The lid is held by a word lock of its own. Spell it on the wall first.",
+   found:"Inside, wrapped in felt: a small iron bird, and the last seal gives."},
+  {t:"prop",kind:"bookcase",w:"n",u:.22},{t:"prop",kind:"bookcase",w:"n",u:.78},
+  {t:"prop",kind:"table",f:[-4.4,-3.4]},{t:"prop",kind:"chair",f:[-4.4,-2.0],ry:3.1},
+  {t:"prop",kind:"lamp",f:[-4.4,-3.4]}
  ]},
 
-{name:"Candlelight", th:"manor", sz:[12,12], par:235, door:{w:"e",u:.5,req:["exit"]},
- obj:"Light the four candles in order.",
- hints:["The candles are numbered. The mantle card gives you events, not numbers.",
-        "Put the four events in the order they happened, then read off the hours.",
-        "Order: 2 · 4 · 1 · 3."],
+{name:"Candlelight", th:"manor", sz:[15,14], par:420, door:{w:"e",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Light them in the right order, then bleed the line.",
+ hints:["Four seals: five candles, a valve, a panel the valve wakes up, and four shards.",
+        "The mantle card lists events, not hours. Put the events in order, then read off the hours.",
+        "Candles 2·5·1·4·3 · valve nine turns · code 0909 · four shards."],
  objs:[
-  {t:"note",w:"w",u:.5,y:1.5,name:"Mantle Card",txt:"At two, she arrived.\nAt four, she was seen.\nAt one, she was gone.\nAt three, they looked.\n\nLight them in the order things happened,\nnot in the order of the hours."},
-  {t:"btnseq",kind:"torch",w:"n",u:.5,n:4,order:[2,4,1,3],set:["exit"]},
-  {t:"prop",kind:"table",f:[0,3]},{t:"prop",kind:"bookcase",w:"s",u:.25},
-  {t:"prop",kind:"chair",f:[-3.2,-3],ry:.6},{t:"prop",kind:"desk",f:[3.4,-2.6],ry:-.4}
+  {t:"note",w:"w",u:.24,y:1.5,name:"Mantle Card",txt:"At two, she arrived.\nAt five, she was seen.\nAt one, she was gone.\nAt four, they looked.\nAt three, they stopped looking.\n\nLight them in the order things happened,\nnot in the order of the hours."},
+  {t:"note",w:"w",u:.66,y:1.5,name:"Gas Fitter's Card",txt:"BLEED THE LINE\n\n1. Hand valve: NINE full turns.\n2. Panel code: the turn count,\n   written twice, padded to four digits.\n\n(three turns would be 0303)"},
+  {t:"btnseq",kind:"torch",w:"n",u:.45,n:5,order:[2,5,1,4,3],set:["sealA"]},
+  {t:"valve",w:"s",u:.28,y:1.3,turns:9,set:["bled"]},
+  {t:"keypad",w:"s",u:.72,y:1.35,code:"0909",req:["bled"],set:["sealB"],
+   lock:"Dead. The line is still charged.",sub:"Four digits."},
+  {t:"gems",set:["sealC"],pts:[[-6.4,.6,4.6],[6.4,.6,-4.6],[-2.0,.95,4.4],[6.4,2.0,1.2]]},
+  {t:"switch",w:"n",u:.86,y:.32,set:["sealD"],name:"Hearth Catch"},
+  {t:"prop",kind:"table",f:[-2.0,4.4]},{t:"prop",kind:"shelf",w:"e",u:.9},
+  {t:"prop",kind:"chair",f:[-4.0,-4.0],ry:.6},{t:"prop",kind:"desk",f:[4.2,-4.0],ry:-.4},
+  {t:"prop",kind:"bookcase",w:"s",u:.5}
  ]},
 
-{name:"The Wine Cellar", th:"manor", sz:[12,12], par:250, door:{w:"n",u:.5,req:["exit"]},
- obj:"Balance the scale, then take what it releases.",
- hints:["The scale needs an exact weight. You choose which bottles go on the pan.",
-        "The target is on the plaque; every bottle is labelled with its weight.",
-        "Any set adding to exactly 31 — Claret 14 + Sherry 17 works. Then open the cabinet."],
+{name:"The Wine Cellar", th:"manor", sz:[15,14], par:440, door:{w:"n",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Balance the scale — everything else follows from what it releases.",
+ hints:["The scale releases the cabinet; the cabinet holds the breaker pattern.",
+        "Pick bottles adding to exactly 31. Claret 14 + Sherry 17 will do it.",
+        "Scale 31 · breakers up-down-up-up-down · sequencer four rounds · five shards."],
  objs:[
-  {t:"note",w:"w",u:.35,y:1.5,name:"Cellar Plaque",txt:"The pan releases the cabinet\nwhen it holds exactly\n\n      THIRTY-ONE\n\nnot a gram more, not a gram less."},
-  {t:"weigh",w:"s",u:.5,y:1.3,target:31,set:["cab"],
+  {t:"note",w:"w",u:.24,y:1.5,name:"Cellar Plaque",txt:"The pan releases the cabinet\nwhen it holds exactly\n\n      THIRTY-ONE\n\nnot a gram more, not a gram less."},
+  {t:"weigh",w:"w",u:.66,y:1.3,target:31,set:["cabOpen"],
    items:[{n:"Claret",w:14},{n:"Port",w:9},{n:"Hock",w:8},{n:"Sherry",w:17},{n:"Madeira",w:5},{n:"Brandy",w:12}],
    sub:"A brass pan on a spring, and six bottles on the rack beside it."},
-  {t:"container",kind:"cabinet",w:"e",u:.5,req:["cab"],set:["exit"],
-   lock:"Locked, and wired down to the scale in the corner.",
-   found:"The cabinet clicks open. A long house key hangs on a nail inside."},
-  {t:"prop",kind:"shelf",w:"s",u:.2},{t:"prop",kind:"barrel",f:[-4.2,3.2]},
-  {t:"prop",kind:"barrel",f:[-4.2,1.9]},{t:"prop",kind:"crate",f:[4.2,-3.4]}
+  {t:"container",kind:"cabinet",w:"e",u:.3,req:["cabOpen"],set:["sealA"],
+   lock:"Locked, and wired down to the scale on the west wall.",
+   found:"A long house key — and pinned behind it, a card:\n\n   THE BREAKERS —  O  X  O  O  X"},
+  {t:"levers",w:"n",u:.26,n:5,target:[1,0,1,1,0],set:["sealB"]},
+  {t:"simon",w:"s",u:.5,y:1.4,len:4,set:["sealC"],sub:"Four bell-jars, each a different tone."},
+  {t:"gems",set:["sealD"],pts:[[-6.4,.6,-4.6],[6.4,.6,4.6],[0,.95,-4.4],
+                               [-6.4,.6,1.6],[6.4,1.25,-1.6]]},
+  {t:"prop",kind:"table",f:[0,-4.4]},{t:"prop",kind:"crate",f:[6.4,-1.6]},
+  {t:"prop",kind:"barrel",f:[-6.4,3.4]},{t:"prop",kind:"barrel",f:[-6.4,4.6]},
+  {t:"prop",kind:"shelf",w:"e",u:.72}
  ]},
 
-{name:"Memory of the House", th:"library", sz:[11,11], par:245, door:{w:"s",u:.5,req:["exit"]},
- obj:"Reproduce the pattern of lit panes.",
- hints:["Watch, then click the same cells back. Order does not matter.",
-        "It shows the pattern for a moment only. Do not look away.",
-        "One extra cell each round. Three rounds and it opens."],
+{name:"Memory of the House", th:"library", sz:[14,14], par:430, door:{w:"s",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Remember, reassemble, count, and walk.",
+ hints:["Four seals: the pattern panel, the broken index tile, a keypad, and the floor stones.",
+        "The keypad note is in Roman numerals. Read them as one four-digit number.",
+        "Code 1943 · stones 3, 1, 4, 2 · the tile sorts to 1–8 with the gap last."],
  objs:[
-  {t:"note",w:"n",u:.5,y:1.5,name:"Note Under Glass",txt:"The house remembers rooms\nlong after they are emptied.\n\nSo should you.\n\nThree patterns."},
-  {t:"memory",w:"e",u:.5,y:1.4,n:4,rounds:3,set:["exit"],sub:"Sixteen milk-glass panes in a lead frame."},
-  {t:"prop",kind:"bookcase",w:"w",u:.3},{t:"prop",kind:"bookcase",w:"w",u:.68},
-  {t:"prop",kind:"desk",f:[0,-2.8]},{t:"prop",kind:"lamp",f:[0,-2.8]}
+  {t:"note",w:"n",u:.24,y:1.5,name:"Note Under Glass",txt:"The house remembers rooms\nlong after they are emptied.\n\nSo should you."},
+  {t:"note",w:"n",u:.66,y:1.5,name:"Dated Flyleaf",txt:"THE PANEL, four digits:\n\n     I   IX   IV   III\n\nRead them as digits, in that order."},
+  {t:"memory",w:"e",u:.28,y:1.4,n:4,rounds:3,set:["sealA"],sub:"Sixteen milk-glass panes."},
+  {t:"slide",w:"e",u:.72,y:1.4,seed:77,set:["sealB"],sub:"Eight numbered tiles and one empty slot."},
+  {t:"keypad",w:"w",u:.5,y:1.35,code:"1943",set:["sealC"],sub:"Four digits."},
+  {t:"note",f:[0,-1.4],y:.06,name:"Inlaid Brass",txt:"The stones are numbered.\n\n  THIRD. FIRST. FOURTH. SECOND."},
+  {t:"plates",set:["sealD"],pts:[[-4.8,4.2],[-1.6,4.2],[1.6,4.2],[4.8,4.2]],order:[2,0,3,1]},
+  {t:"prop",kind:"bookcase",w:"w",u:.2},{t:"prop",kind:"bookcase",w:"w",u:.8},
+  {t:"prop",kind:"desk",f:[0,-4.6]},{t:"prop",kind:"lamp",f:[0,-4.6]},
+  {t:"prop",kind:"chair",f:[0,-3.2],ry:0}
  ]},
 
-{name:"The Master Key", th:"manor", sz:[14,12], par:320, door:{w:"n",u:.5,req:["exit"]},
- obj:"Three stages, one key.",
- hints:["Painting first — it is hiding the ring lock. The rings open the cabinet. The cabinet has the key.",
-        "The two bookplates name the three marks, and give you their order.",
-        "Rings: ✦ ⚷ ☀ . Then open the cabinet and take the master key."],
+{name:"The Master Key", th:"manor", sz:[17,14], par:540, door:{w:"n",u:.74,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Painting, rings, cabinet, key, chest — and three more locks besides.",
+ hints:["The painting hides the rings. The rings open the cabinet. The cabinet holds the master key. The key opens the chest.",
+        "The two bookplates name the ring marks and their order; the cabinet card gives the breakers.",
+        "Rings ✦ ⚷ ☀ · breakers up-up-down-up-down-down · books 3·5·1·4·2 · five shards."],
  objs:[
-  {t:"painting",w:"w",u:.35,y:1.55,set:["dialSeen"],art:"landscape",
+  {t:"painting",w:"w",u:.26,y:1.55,set:["dialSeen"],art:"landscape",
    reveal:"Behind the canvas: three brass rings set into the panelling."},
-  {t:"note",w:"s",u:.28,y:1.5,name:"Bookplate, first",txt:"He read by starlight\nand slept by none.\n\nThe star came first in everything."},
-  {t:"note",w:"s",u:.66,y:1.5,name:"Bookplate, second",txt:"The key came second in his affections,\nand the sun a distant third."},
-  {t:"dials",w:"w",u:.35,y:1.5,syms:["☀","☾","✦","⚷","✜"],target:[2,3,0],req:["dialSeen"],hide:"dialSeen",set:["cab"],
-   sub:"Three rings, five marks each."},
-  {t:"container",kind:"cabinet",w:"e",u:.55,req:["cab"],set:["exit"],
+  {t:"note",w:"s",u:.2,y:1.5,name:"Bookplate, first",txt:"He read by starlight\nand slept by none.\n\nThe star came first in everything."},
+  {t:"note",w:"s",u:.5,y:1.5,name:"Bookplate, second",txt:"The key came second in his affections,\nand the sun a distant third."},
+  {t:"note",w:"s",u:.8,y:1.5,name:"Reading List",txt:"The shelf, in this order:\n\n   III   V   I   IV   II"},
+  {t:"dials",w:"w",u:.26,y:1.5,syms:["☀","☾","✦","⚷","✜"],target:[2,3,0],
+   req:["dialSeen"],hide:"dialSeen",set:["cabOpen"],sub:"Three rings, five marks each."},
+  {t:"container",kind:"cabinet",w:"e",u:.28,req:["cabOpen"],set:["key_master"],
    lock:"The cabinet doors are pinned shut from the inside.",
-   found:"A master key, long as your hand, on a leather loop."},
-  {t:"prop",kind:"bookcase",w:"s",u:.85},{t:"prop",kind:"desk",f:[2.4,3.2],ry:-.2},
-  {t:"prop",kind:"chair",f:[2.4,1.9],ry:3.1},{t:"prop",kind:"lamp",f:[2.4,3.2]},
-  {t:"prop",kind:"table",f:[-3.6,3.2]}
+   found:"A master key, long as your hand — and a card behind it:\n\n   THE BREAKERS —  O  O  X  O  X  X"},
+  {t:"container",kind:"chest",f:[0,4.6],ry:.2,req:["key_master"],set:["sealA"],
+   lock:"A great iron lock. Nothing you are carrying fits it.",
+   found:"The chest opens on an empty velvet tray —\nand somewhere behind the wall, a bolt draws back."},
+  {t:"levers",w:"n",u:.26,n:6,target:[1,1,0,1,0,0],set:["sealB"]},
+  {t:"btnseq",kind:"book",w:"e",u:.72,n:5,order:[3,5,1,4,2],set:["sealC"]},
+  {t:"gems",set:["sealD"],pts:[[-7.4,.6,-5.0],[7.4,.6,-5.0],[-3.6,.95,3.4],
+                               [7.4,2.0,1.4],[-7.4,.6,2.2]]},
+  {t:"prop",kind:"table",f:[-3.6,3.4]},{t:"prop",kind:"shelf",w:"e",u:.9},
+  {t:"prop",kind:"desk",f:[3.6,3.4],ry:-.2},{t:"prop",kind:"chair",f:[3.6,2.0],ry:3.1},
+  {t:"prop",kind:"lamp",f:[3.6,3.4]},{t:"prop",kind:"bookcase",w:"s",u:.9}
  ]},
 
-/* ---------------- ACT III : THE LABORATORY ---------------- */
-{name:"Sterile Field", th:"lab", sz:[12,11], par:210, door:{w:"n",u:.5,req:["exit"]},
- obj:"Rewire the terminal block.",
- hints:["The wiring legend is posted on the west wall. Do not just match colours.",
-        "Each lead goes to the numbered socket the legend specifies, not the obvious one.",
-        "RED→III, BLUE→I, GREEN→IV, AMBER→II."],
+/* ================= ACT III : THE LABORATORY ================= */
+{name:"Sterile Field", th:"lab", sz:[15,13], par:430, door:{w:"n",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Rewire, route, and beat the power timer.",
+ hints:["Four seals. One of them is on a timer: the red lever gives you thirty seconds of power.",
+        "Throw the power lever on the west wall, then run to the keypad on the east wall and open it.",
+        "Wires RED→III BLUE→I GREEN→IV AMBER→II · keypad 1704 · plus the conduit and four vials."],
  objs:[
-  {t:"note",w:"w",u:.4,y:1.5,name:"Wiring Legend",txt:"REVISED WIRING — DO NOT MATCH BY COLOUR\n\n  RED    → socket III\n  BLUE   → socket I\n  GREEN  → socket IV\n  AMBER  → socket II"},
-  {t:"wires",w:"e",u:.5,y:1.4,set:["exit"],
+  {t:"note",w:"s",u:.22,y:1.5,name:"Wiring Legend",txt:"REVISED WIRING — DO NOT MATCH BY COLOUR\n\n  RED    → socket III\n  BLUE   → socket I\n  GREEN  → socket IV\n  AMBER  → socket II"},
+  {t:"note",w:"s",u:.6,y:1.5,name:"Duty Sheet",txt:"BAY POWER is on a dead-man lever.\nThrow it and you have THIRTY SECONDS\nbefore the bus drops out again.\n\nRELEASE CODE: this door's number,\nthen this bay's number.\n\n   door 17  ·  bay 04"},
+  {t:"wires",w:"e",u:.3,y:1.4,set:["sealA"],
    left:[{n:"RED",c:"#e0574f"},{n:"BLUE",c:"#5b8cff"},{n:"GREEN",c:"#5fd08a"},{n:"AMBER",c:"#f2a93b"}],
-   right:["I","II","III","IV"], map:[2,0,3,1],
+   right:["I","II","III","IV"],map:[2,0,3,1],
    sub:"Four leads, four sockets. Click a lead, then click its socket."},
-  {t:"prop",kind:"machine",f:[-3.4,-2.8]},{t:"prop",kind:"tank",f:[3.6,2.8]},
-  {t:"prop",kind:"table",f:[0,2.6]},{t:"prop",kind:"shelf",w:"s",u:.25}
+  {t:"pipes",w:"e",u:.72,y:1.4,n:5,seed:65,set:["sealB"],sub:"Rotating conduit segments behind glass."},
+  {t:"tswitch",w:"w",u:.3,secs:30,set:["power"],name:"Bay Power Lever"},
+  {t:"keypad",w:"w",u:.78,y:1.35,code:"1704",req:["power"],set:["sealC"],
+   lock:"Unpowered. The bay bus is dead — something has to wake it first.",sub:"Four digits."},
+  {t:"gems",set:["sealD"],kind:"vial",pts:[[-6.4,.6,4.6],[6.4,.6,4.6],[0,2.15,-4.6],[-2.4,.95,3.0]]},
+  {t:"prop",kind:"machine",f:[0,-4.6]},{t:"prop",kind:"table",f:[-2.4,3.0]},
+  {t:"prop",kind:"tank",f:[4.4,-4.4]},{t:"prop",kind:"crate",f:[-4.8,-4.4]}
  ]},
 
-{name:"Pipework", th:"foundry", sz:[12,12], par:255, door:{w:"e",u:.5,req:["exit"]},
- obj:"Route the flow from inlet to outlet.",
- hints:["Click a pipe segment to rotate it a quarter turn.",
-        "Start at the inlet on the left edge and build the run forward one tile at a time.",
-        "Only one continuous path counts. Dead ends elsewhere do not matter."],
+{name:"Pipework", th:"foundry", sz:[15,14], par:450, door:{w:"e",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Route it, turn it, light it, and gather the slag-glass.",
+ hints:["Four seals: the conduit grid, the hand valve, the burner board, and five pieces of glass.",
+        "The valve has a set number of turns — overshoot and it springs back to zero.",
+        "Conduit west-to-east · valve thirteen turns · burner board: press the four corners · five shards."],
  objs:[
-  {t:"note",w:"n",u:.35,y:1.5,name:"Stencilled Sign",txt:"LINE 4 — MANUAL ROUTING\n\ninlet: west face.\noutlet: east face.\n\nturn the segments until it runs."},
-  {t:"pipes",w:"s",u:.5,y:1.4,n:5,seed:65,set:["exit"],sub:"A grid of rotating pipe segments behind glass."},
-  {t:"prop",kind:"machine",f:[-3.6,3.2]},{t:"prop",kind:"tank",f:[-3.6,-3]},
-  {t:"prop",kind:"crate",f:[3.4,-3.4]},{t:"prop",kind:"pipe",w:"n",u:.78}
+  {t:"note",w:"n",u:.26,y:1.5,name:"Stencilled Sign",txt:"LINE 4 — MANUAL ROUTING\n\ninlet: west face.   outlet: east face.\nturn the segments until it runs."},
+  {t:"note",w:"n",u:.68,y:1.5,name:"Shift Card",txt:"HAND VALVE:  THIRTEEN turns.\n   Overshoot and it drops to nothing.\n\nBURNER BOARD: every cell lit.\n   A touch flips a cell and its neighbours.\n   Start at the corners."},
+  {t:"pipes",w:"s",u:.3,y:1.4,n:5,seed:83,set:["sealA"],sub:"A grid of rotating pipe segments."},
+  {t:"valve",w:"s",u:.72,y:1.3,turns:13,set:["sealB"]},
+  {t:"lights",w:"w",u:.5,y:1.4,n:3,scr:[0,2,6,8],set:["sealC"],sub:"Nine burner cells."},
+  {t:"gems",set:["sealD"],pts:[[-6.4,.6,-5.0],[6.4,.6,-5.0],[-3.0,2.15,4.6],
+                               [6.4,2.2,2.0],[0,.6,0]]},
+  {t:"prop",kind:"machine",f:[-3.0,4.6]},{t:"prop",kind:"tank",f:[6.4,2.0]},
+  {t:"prop",kind:"crate",f:[4.0,4.8]},{t:"prop",kind:"pipe",w:"n",u:.9}
  ]},
 
-{name:"Laser Bench", th:"lab", sz:[13,12], par:270, door:{w:"n",u:.5,req:["exit"]},
- obj:"Land the beam on the receiver.",
- hints:["Interact with a mirror to flip it between its two diagonals.",
+{name:"Laser Bench", th:"lab", sz:[16,14], par:470, door:{w:"n",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"Land the beam, then use what it powers.",
+ hints:["The optics loop powers the keypad. Do the beam first.",
         "Follow the beam out of the emitter and fix the first mirror it reaches, then the next.",
-        "Both mirrors on the beam's path need the '/' orientation. The third mirror is a decoy."],
+        "Both mirrors on the path go to '/' · code 9312 · markers N W E S."],
  objs:[
-  {t:"note",w:"w",u:.35,y:1.5,name:"Bench Card",txt:"OPTICS BENCH 2\n\nMirrors flip between  /  and  \\ .\nThe emitter fires west to east.\nGet the beam into the receiver."},
-  {t:"laser",g:[5,5],cell:1.5,o:[0,.4],emit:{c:0,r:2,d:0},recv:{c:4,r:0},
-   mirrors:[[2,2,1],[2,0,1],[3,3,0]],set:["exit"]},
-  {t:"prop",kind:"machine",f:[-4.8,-3.8]},{t:"prop",kind:"tank",f:[5,3.6]},
-  {t:"prop",kind:"shelf",w:"e",u:.25}
+  {t:"note",w:"w",u:.24,y:1.5,name:"Bench Card",txt:"OPTICS BENCH 2\n\nMirrors flip between  /  and  \\ .\nThe emitter fires west to east.\nGet the beam into the receiver;\nthe loop powers the release panel."},
+  {t:"note",w:"w",u:.66,y:1.5,name:"Duty Sheet",txt:"RELEASE CODE: door number,\nthen the year it was sealed.\n\n   door 93  ·  sealed '12\n\nMARKER POSTS, in order:\n   north, west, east, south."},
+  {t:"laser",g:[5,5],cell:1.5,o:[0,0.6],emit:{c:0,r:2,d:0},recv:{c:4,r:0},
+   mirrors:[[2,2,1],[2,0,1],[3,3,0]],set:["sealA"]},
+  {t:"keypad",w:"e",u:.3,y:1.35,code:"9312",req:["sealA"],set:["sealB"],
+   lock:"Unpowered. The optics loop feeds this panel.",sub:"Four digits."},
+  {t:"posts",set:["sealC"],target:[0,3,1,2],
+   pts:[[-5.6,5.6],[-1.9,5.6],[1.9,5.6],[5.6,5.6]]},
+  {t:"prop",kind:"machine",f:[-6.4,-5.2]},{t:"prop",kind:"tank",f:[6.6,-5.0]},
+  {t:"prop",kind:"shelf",w:"e",u:.78}
  ]},
 
-{name:"Cryo Bay", th:"cryo", sz:[12,12], par:260, door:{w:"s",u:.5,req:["exit"]},
- obj:"Purge the line, then key in the release.",
- hints:["The valve must be turned a specific number of times before the panel wakes up.",
-        "The gauge card says how many turns, and tells you how to build the code from that number.",
-        "Seven turns, then the code 0707."],
+{name:"Cryo Bay", th:"cryo", sz:[15,14], par:460, door:{w:"s",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Purge, release, remember, and walk the plates.",
+ hints:["Four seals. The valve wakes the release panel; everything else stands alone.",
+        "The gauge card gives the turn count and tells you how to build the code from it.",
+        "Seven turns · code 0707 · stones 1,2,3,4 in order · pattern panel, three rounds."],
  objs:[
-  {t:"note",w:"n",u:.35,y:1.5,name:"Gauge Card",txt:"PURGE PROCEDURE\n\n1. Hand valve: SEVEN full turns.\n2. Release code: the turn count,\n   written twice, padded to four digits.\n\n(three turns would be 0303)"},
-  {t:"valve",w:"w",u:.45,y:1.3,turns:7,set:["purged"]},
-  {t:"keypad",w:"e",u:.5,y:1.35,code:"0707",req:["purged"],set:["exit"],
+  {t:"note",w:"n",u:.26,y:1.5,name:"Gauge Card",txt:"PURGE PROCEDURE\n\n1. Hand valve: SEVEN full turns.\n2. Release code: the turn count,\n   written twice, padded to four digits.\n\n(three turns would be 0303)"},
+  {t:"note",w:"n",u:.7,y:1.5,name:"Deck Plate",txt:"FLOOR INTERLOCK\n\nThe stones are numbered.\nWalk them 1, 2, 3, 4, in that order.\nOut of order and they sink."},
+  {t:"valve",w:"w",u:.3,y:1.3,turns:7,set:["purged"]},
+  {t:"keypad",w:"w",u:.76,y:1.35,code:"0707",req:["purged"],set:["sealA"],
    lock:"Dead. The line is still pressurised.",sub:"Release panel. Four digits."},
-  {t:"prop",kind:"tank",f:[-3.6,3.2]},{t:"prop",kind:"tank",f:[-2.2,3.2]},
-  {t:"prop",kind:"machine",f:[3.6,-3.2]},{t:"prop",kind:"pipe",w:"w",u:.8}
+  {t:"memory",w:"e",u:.3,y:1.4,n:4,rounds:3,set:["sealB"],sub:"A field of pinprick lamps behind smoked glass."},
+  {t:"plates",set:["sealC"],pts:[[-5.0,4.4],[-1.7,4.4],[1.7,4.4],[5.0,4.4]],order:[0,1,2,3]},
+  {t:"gems",set:["sealD"],kind:"vial",pts:[[-6.4,.6,-5.0],[6.4,.6,-5.0],[0,2.15,-5.0],
+                                            [6.4,2.2,1.0],[-6.4,.6,-1.0]]},
+  {t:"prop",kind:"machine",f:[0,-5.0]},{t:"prop",kind:"tank",f:[6.4,1.0]},
+  {t:"prop",kind:"tank",f:[-4.6,-5.0]},{t:"prop",kind:"pipe",w:"e",u:.85}
  ]},
 
-{name:"Specimen", th:"lab", sz:[13,12], par:275, door:{w:"n",u:.5,req:["sealA","sealB"]},
- obj:"Answer the terminal, and collect the five samples.",
- hints:["Two seals: a question at the terminal, and five sample vials hidden around the room.",
-        "One vial is up on the big machine, one is on the high shelf. Look up.",
-        "The terminal's answer is the one that was never in the room: the control."],
+{name:"Specimen", th:"lab", sz:[16,14], par:480, door:{w:"n",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Answer the terminal, gather the vials, align the posts, close the circuit.",
+ hints:["Four seals. One vial is on top of the big machine and one is on the high shelf — look up.",
+        "The terminal wants the subject that was never in the room.",
+        "The control · six vials · posts E S W N · wires RED→II BLUE→IV GREEN→III AMBER→I."],
  objs:[
-  {t:"note",w:"w",u:.3,y:1.5,name:"Lab Log",txt:"Six subjects entered.\nFive gave samples.\nOne never entered at all —\n\nthe terminal wants that one."},
-  {t:"choice",w:"e",u:.5,y:1.4,set:["sealA"],
+  {t:"note",w:"w",u:.22,y:1.5,name:"Lab Log",txt:"Seven subjects entered.\nSix gave samples.\nOne never entered at all —\n\nthe terminal wants that one."},
+  {t:"note",w:"w",u:.6,y:1.5,name:"Bench Card",txt:"MARKER POSTS, left to right:\n   east, south, west, north.\n\nTERMINAL BLOCK:\n   RED → II    BLUE → IV\n   GREEN → III AMBER → I"},
+  {t:"choice",w:"e",u:.3,y:1.4,set:["sealA"],
    q:"Which subject produced no sample?",
    opts:["Subject A — sedated","Subject B — reactive","The control","Subject D — deceased"],ans:2,
    sub:"Terminal query. One answer at a time."},
   {t:"gems",set:["sealB"],kind:"vial",
-   pts:[[-4.4,2.2,-2.4],[4.6,.6,-3.4],[0,2.15,-4.2],[-1.6,.95,2.6],[5.4,1.9,3.3]]},
-  {t:"prop",kind:"machine",f:[0,-4.2]},{t:"prop",kind:"table",f:[-1.6,2.6]},
-  {t:"prop",kind:"crate",f:[1.6,-4.2]},{t:"prop",kind:"shelf",w:"e",u:.78},
-  {t:"prop",kind:"tank",f:[-4.4,-2.4]}
+   pts:[[-6.8,.6,4.8],[6.8,.6,-4.8],[0,2.15,-5.2],[-2.4,.95,3.2],[6.9,2.0,1.6],[-6.8,.6,.4]]},
+  {t:"posts",set:["sealC"],target:[1,2,3,0],
+   pts:[[-4.8,-1.4],[-1.6,-1.4],[1.6,-1.4],[4.8,-1.4]]},
+  {t:"wires",w:"e",u:.72,y:1.4,set:["sealD"],
+   left:[{n:"RED",c:"#e0574f"},{n:"BLUE",c:"#5b8cff"},{n:"GREEN",c:"#5fd08a"},{n:"AMBER",c:"#f2a93b"}],
+   right:["I","II","III","IV"],map:[1,3,2,0],
+   sub:"Four leads, four sockets."},
+  {t:"prop",kind:"machine",f:[0,-5.2]},{t:"prop",kind:"table",f:[-2.4,3.2]},
+  {t:"prop",kind:"shelf",w:"e",u:.9},{t:"prop",kind:"tank",f:[-6.6,-3.2]},
+  {t:"prop",kind:"crate",f:[4.6,4.6]}
  ]},
 
-{name:"The Furnace", th:"foundry", sz:[13,12], par:290, door:{w:"e",u:.5,req:["sealA","sealB"]},
- obj:"Raise the floor interlock, and light the burner board.",
- hints:["The floor stones are numbered. Step on them in that order.",
-        "The burner board is a lights-out grid: every one of the nine cells must burn.",
-        "Stones 1 → 2 → 3. On the board, press the four corners."],
+{name:"The Furnace", th:"foundry", sz:[16,14], par:490, door:{w:"e",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"The floor, the board, the braziers, and the wheel.",
+ hints:["Four seals. The stamped plate on the north wall covers three of them.",
+        "The braziers are numbered on plaques at their bases.",
+        "Stones 1-2-3-4 · board: four edge cells · braziers 5·1·4·6·2·3 · valve twelve turns."],
  objs:[
-  {t:"note",w:"n",u:.3,y:1.5,name:"Stamped Plate",txt:"FLOOR INTERLOCK\nstep on stone 1, then 2, then 3.\nout of order and it resets.\n\nBURNER BOARD\nevery cell lit. no exceptions."},
-  {t:"plates",set:["sealA"],pts:[[-3.6,3.4],[0,.4],[3.6,-3.2]],order:[0,1,2]},
-  {t:"lights",w:"s",u:.5,y:1.4,n:3,scr:[0,2,6,8],set:["sealB"],
-   sub:"Nine burner cells. Pressing one flips it and its neighbours."},
-  {t:"prop",kind:"machine",f:[-4.8,-3.6]},{t:"prop",kind:"pipe",w:"n",u:.7},
-  {t:"prop",kind:"tank",f:[5,3.4]},{t:"prop",kind:"crate",f:[-4.6,1.4]}
+  {t:"note",w:"n",u:.2,y:1.5,name:"Stamped Plate",txt:"FLOOR INTERLOCK: stones 1, 2, 3, 4 in order.\n\nBURNER BOARD: every cell lit.\n   The edges, not the corners.\n\nHAND WHEEL: TWELVE turns."},
+  {t:"note",w:"n",u:.86,y:1.5,name:"Furnace Rota",txt:"THE BRAZIERS, in this order:\n\n   fifth, first, fourth,\n   sixth, second, third"},
+  {t:"plates",set:["sealA"],pts:[[-5.4,-4.6],[-1.8,-4.6],[1.8,-4.6],[5.4,-4.6]],order:[0,1,2,3]},
+  {t:"lights",w:"w",u:.3,y:1.4,n:3,scr:[1,3,5,7],set:["sealB"],sub:"Nine burner cells."},
+  {t:"btnseq",kind:"torch",w:"s",u:.5,n:6,order:[5,1,4,6,2,3],set:["sealC"]},
+  {t:"valve",w:"w",u:.76,y:1.3,turns:12,set:["sealD"]},
+  {t:"prop",kind:"machine",f:[-6.6,-.4]},{t:"prop",kind:"tank",f:[6.6,-.4]},
+  {t:"prop",kind:"pipe",w:"n",u:.55},{t:"prop",kind:"crate",f:[6.8,-2.0]}
  ]},
 
-{name:"Cold Storage", th:"cryo", sz:[13,13], par:300, door:{w:"n",u:.5,req:["exit"]},
- obj:"Reassemble the shattered index tile.",
- hints:["It is a sliding puzzle. Click a tile beside the gap to slide it in.",
-        "Solve the top row first, then the left column, then the last four.",
-        "Finished, it reads 1–8 left to right, top to bottom, with the gap at the end."],
+{name:"Cold Storage", th:"cryo", sz:[16,15], par:500, door:{w:"n",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Four machines, none of which care about each other.",
+ hints:["Four independent seals: the index tile, the lattice, the conduit, and five vials.",
+        "The lattice is a 4×4 lights-out board — the four centre cells solve it.",
+        "Tile sorts to 1–8 with the gap last · lattice: press the four centre cells · conduit west to east."],
  objs:[
-  {t:"note",w:"w",u:.35,y:1.5,name:"Index Card",txt:"The index tile fell and broke.\nPut it back in order:\n\n   1  2  3\n   4  5  6\n   7  8  _"},
-  {t:"slide",w:"e",u:.5,y:1.4,seed:77,set:["exit"],sub:"Eight numbered tiles and one empty slot."},
-  {t:"prop",kind:"tank",f:[-5,3.8]},{t:"prop",kind:"tank",f:[-3.6,3.8]},
-  {t:"prop",kind:"crate",f:[4.8,-3.8]},{t:"prop",kind:"machine",f:[0,-5]},
-  {t:"prop",kind:"shelf",w:"s",u:.25}
+  {t:"note",w:"w",u:.24,y:1.5,name:"Index Card",txt:"The index tile fell and broke.\nPut it back in order:\n\n   1  2  3\n   4  5  6\n   7  8  _"},
+  {t:"note",w:"w",u:.66,y:1.5,name:"Store Notice",txt:"LATTICE: all sixteen cells lit.\n   A touch flips a cell and its neighbours.\n   Try the four in the middle.\n\nCONDUIT: west inlet, east outlet."},
+  {t:"slide",w:"e",u:.28,y:1.4,seed:77,set:["sealA"],sub:"Eight numbered tiles and one empty slot."},
+  {t:"lights",w:"e",u:.72,y:1.4,n:4,scr:[5,6,9,10],set:["sealB"],sub:"Sixteen cells in a steel lattice."},
+  {t:"pipes",w:"s",u:.5,y:1.4,n:5,seed:91,set:["sealC"],sub:"Rotating conduit segments."},
+  {t:"gems",set:["sealD"],kind:"vial",pts:[[-6.8,.6,-5.4],[6.8,.6,-5.4],[0,2.15,-5.6],
+                                            [-6.8,2.2,-1.6],[4.8,1.25,4.8]]},
+  {t:"prop",kind:"machine",f:[0,-5.6]},{t:"prop",kind:"tank",f:[-6.8,-1.6]},
+  {t:"prop",kind:"tank",f:[-5.2,-1.6]},{t:"prop",kind:"crate",f:[4.8,4.8]},
+  {t:"prop",kind:"shelf",w:"n",u:.85}
  ]},
 
-{name:"Containment", th:"lab", sz:[14,13], par:360, door:{w:"s",u:.5,req:["sealA","sealB","sealC"]},
- obj:"Three interlocks: optics, code, and the breaker bank.",
- hints:["Do the optics first — the beam loop is what powers the keypad.",
-        "The schematic gives the breaker pattern as O = raised, X = lowered.",
-        "Optics: the first two mirrors on the path go to '/', the third to '\\'. Code 9312. Breakers: up, down, up, up, down."],
+{name:"Containment", th:"lab", sz:[17,15], par:600, door:{w:"s",u:.5,req:["sealA","sealB","sealC","sealD","sealE"]},
+ obj:"Five interlocks. This is the last lab door.",
+ hints:["Five seals: optics, a code the optics powers, the breakers, a conduit on a power timer, and the posts.",
+        "Throw the dead-man lever, then get to the conduit before the bus drops.",
+        "Optics: first two mirrors '/', third '\\' · code 9312 · breakers up-down-up-up-down · posts S N E W."],
  objs:[
-  {t:"note",w:"w",u:.22,y:1.5,name:"Schematic",txt:"BREAKER BANK, left to right:\n\n     O   X   O   O   X\n\n(O = raised, X = lowered)"},
-  {t:"note",w:"w",u:.62,y:1.5,name:"Duty Sheet",txt:"Release code is the door number,\nthen the year it was sealed.\n\n   door 93  ·  sealed '12"},
-  {t:"laser",g:[6,5],cell:1.4,o:[0,0.2],emit:{c:0,r:4,d:0},recv:{c:5,r:4},
+  {t:"note",w:"w",u:.18,y:1.5,name:"Schematic",txt:"BREAKER BANK, left to right:\n\n     O   X   O   O   X\n\n(O raised, X lowered)"},
+  {t:"note",w:"w",u:.5,y:1.5,name:"Duty Sheet",txt:"RELEASE CODE: door number,\nthen the year it was sealed.\n\n   door 93  ·  sealed '12"},
+  {t:"note",w:"w",u:.82,y:1.5,name:"Containment Notice",txt:"CONDUIT BAY runs off the dead-man lever.\nTHIRTY SECONDS of bus power per throw.\n\nMARKER POSTS: south, north, east, west."},
+  {t:"laser",g:[6,5],cell:1.4,o:[0,-2.0],emit:{c:0,r:4,d:0},recv:{c:5,r:4},
    mirrors:[[2,4,1],[2,1,1],[5,1,0],[4,3,0]],set:["sealA"]},
-  {t:"keypad",w:"e",u:.3,y:1.35,code:"9312",req:["sealA"],set:["sealB"],
-   lock:"Unpowered. The optics loop feeds this panel.",sub:"Release panel. Four digits."},
-  {t:"levers",w:"n",u:.5,n:5,target:[1,0,1,1,0],set:["sealC"]},
-  {t:"prop",kind:"machine",f:[-5.2,-4.6]},{t:"prop",kind:"tank",f:[5.4,-4.4]},
-  {t:"prop",kind:"shelf",w:"e",u:.82}
+  {t:"keypad",w:"e",u:.22,y:1.35,code:"9312",req:["sealA"],set:["sealB"],
+   lock:"Unpowered. The optics loop feeds this panel.",sub:"Four digits."},
+  {t:"levers",w:"n",u:.3,n:5,target:[1,0,1,1,0],set:["sealC"]},
+  {t:"tswitch",w:"n",u:.78,secs:30,set:["power"],name:"Dead-man Lever"},
+  {t:"pipes",w:"e",u:.72,y:1.4,n:5,seed:108,req:["power"],set:["sealD"],
+   lock:"The bay is dark. Something has to power it.",sub:"Rotating conduit segments."},
+  {t:"posts",set:["sealE"],target:[2,0,1,3],
+   pts:[[-5.4,4.6],[-1.8,4.6],[1.8,4.6],[5.4,4.6]]},
+  {t:"prop",kind:"machine",f:[-7.2,-5.4]},{t:"prop",kind:"tank",f:[7.2,-5.4]},
+  {t:"prop",kind:"shelf",w:"e",u:.92}
  ]},
 
-/* ---------------- ACT IV : THE VAULT ---------------- */
-{name:"First Seal", th:"vault", sz:[12,12], par:250, door:{w:"n",u:.5,req:["exit"]},
- obj:"Four rings. Four marks.",
- hints:["The inscription describes each ring in turn, in order.",
-        "Every line names a shape that is actually on the rings — read them literally.",
-        "Set them to ✜ ☗ ☀ ✦ , left to right."],
+/* ================= ACT IV : THE VAULT ================= */
+{name:"First Seal", th:"vault", sz:[15,14], par:470, door:{w:"n",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Rings, posts, a code, and five sparks.",
+ hints:["Four seals. The inscription covers the rings and the posts; the tally covers the code.",
+        "Count the pillars, the posts, the doors and the rings in this room.",
+        "Rings ✜ ☗ ☀ ✦ · posts W S E N · code 2414 · five sparks."],
  objs:[
-  {t:"note",w:"s",u:.5,y:1.5,name:"Inscription",txt:"First, the cross of four roads.\nSecond, the closed house.\nThird, the thing that burns.\nLast, the mark of four points.\n\n(the rings carry: ☀ ☾ ✦ ⚷ ✜ ☗)"},
-  {t:"dials",w:"e",u:.5,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[4,5,0,2],set:["exit"],
+  {t:"note",w:"s",u:.26,y:1.5,name:"Inscription",txt:"First, the cross of four roads.\nSecond, the closed house.\nThird, the thing that burns.\nLast, the mark of four points.\n\n(the rings carry: ☀ ☾ ✦ ⚷ ✜ ☗)\n\nAnd the posts: west, south, east, north."},
+  {t:"note",w:"s",u:.7,y:1.5,name:"Vault Tally",txt:"THE PANEL, four digits:\n\n   pillars in this room,\n   then marker posts,\n   then doors,\n   then rings on the lock."},
+  {t:"dials",w:"e",u:.3,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[4,5,0,2],set:["sealA"],
    sub:"Four steel rings sunk into the vault wall."},
-  {t:"prop",kind:"pillar",f:[-4.4,-4.2]},{t:"prop",kind:"pillar",f:[4.4,-4.2]},
-  {t:"prop",kind:"machine",f:[0,4.4]}
+  {t:"posts",set:["sealB"],target:[3,2,1,0],
+   pts:[[-4.8,-1.0],[-1.6,-1.0],[1.6,-1.0],[4.8,-1.0]]},
+  {t:"keypad",w:"e",u:.74,y:1.35,code:"2414",set:["sealC"],sub:"Four digits."},
+  {t:"gems",set:["sealD"],kind:"spark",pts:[[-6.4,.6,4.6],[6.4,.6,4.6],[0,2.15,4.6],
+                                             [-6.4,.6,-5.4],[6.4,.6,-5.4]]},
+  {t:"prop",kind:"machine",f:[0,4.6]},
+  {t:"prop",kind:"pillar",f:[-6.4,-2.4]},{t:"prop",kind:"pillar",f:[6.4,-2.4]}
  ]},
 
-{name:"The Reliquary", th:"temple", sz:[13,12], par:270, door:{w:"e",u:.5,req:["sealA","sealB"]},
- obj:"Six relics, and one catch that does not want to be found.",
- hints:["Six relics. Half of them are not on the floor.",
-        "One relic sits on the altar, one on the statue's shoulder, one on the west shelf.",
-        "The mason's catch is low down at the base of the west pillar."],
+{name:"The Reliquary", th:"temple", sz:[16,14], par:520, door:{w:"e",u:.5,req:["sealA","sealB","sealC","sealD","sealE"]},
+ obj:"Six relics, a mason's catch, the stones, a word, and the rings.",
+ hints:["Five seals. Two relics are not on the floor, and the catch is at the base of the west pillar.",
+        "The word is what this building is — six letters, carved over every door in it.",
+        "Relics · catch at the west pillar · stones 2,4,1,3 · word TEMPLE · rings ☀ ✦ ☾."],
  objs:[
-  {t:"note",w:"n",u:.3,y:1.5,name:"Votive Tablet",txt:"Six offerings, and a seventh act:\n\nfind the catch the mason left,\nlow, and out of the light."},
+  {t:"note",w:"n",u:.22,y:1.5,name:"Votive Tablet",txt:"Six offerings, and a seventh act:\nfind the catch the mason left,\nlow, and out of the light,\nat the foot of the western pillar."},
+  {t:"note",w:"n",u:.6,y:1.5,name:"Rite of Passage",txt:"THE STONES: second, fourth, first, third.\n\nTHE RINGS: sun, star, moon.\n\nTHE WORD: six letters. It is carved\nover every door in this building,\nand you are standing inside it."},
   {t:"gems",set:["sealA"],kind:"relic",
-   pts:[[-4.6,.6,3.4],[4.8,.6,-3.4],[0,.95,2.6],[-2.2,1.95,-4.2],[3.2,.6,3.6],[-6.05,1.3,-1.2]]},
-  {t:"switch",f:[-4.8,-2.75],y:.34,set:["sealB"],name:"Mason's Catch"},
-  {t:"prop",kind:"table",f:[0,2.6]},{t:"prop",kind:"pillar",f:[-4.8,-3.4]},
-  {t:"prop",kind:"pillar",f:[4.8,3.4]},{t:"prop",kind:"statue",f:[-2.2,-4.2]},
+   pts:[[-6.8,.6,4.4],[6.8,.6,-4.4],[0,.95,3.0],[-3.0,1.95,-4.8],[3.6,.6,4.4],[-6.9,1.3,-1.2]]},
+  {t:"switch",f:[-5.9,-3.4],y:.34,set:["sealB"],name:"Mason's Catch"},
+  {t:"plates",set:["sealC"],pts:[[-5.4,-.6],[-1.8,-.6],[1.8,-.6],[5.4,-.6]],order:[1,3,0,2]},
+  {t:"word",w:"s",u:.3,y:1.4,answer:"TEMPLE",set:["sealD"],sub:"Six bone wheels."},
+  {t:"dials",w:"s",u:.72,y:1.4,syms:["☀","☾","✦","⚷","✜"],target:[0,2,1],set:["sealE"],
+   sub:"Three rings, five marks each."},
+  {t:"prop",kind:"table",f:[0,3.0]},{t:"prop",kind:"pillar",f:[-6.8,-3.4]},
+  {t:"prop",kind:"pillar",f:[6.8,3.4]},{t:"prop",kind:"statue",f:[-3.0,-4.8]},
   {t:"prop",kind:"shelf",w:"w",u:.6}
  ]},
 
-{name:"Ossuary", th:"crypt", sz:[13,13], par:290, door:{w:"n",u:.5,req:["sealA","sealB"]},
- obj:"Name the dead, then repeat what the bells say.",
- hints:["The epitaph's answer is a six-letter word for what is inside a bone.",
-        "The bells are a watch-and-repeat sequence. Five rounds.",
-        "The word is MARROW."],
+{name:"Ossuary", th:"crypt", sz:[16,15], par:530, door:{w:"n",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Name the dead, then listen, then remember, then throw the bars.",
+ hints:["Four seals: the word, the bells, the chart, and the bone bars.",
+        "The epitaph's answer is a six-letter word for what is inside a bone.",
+        "MARROW · bells, five rounds · chart, four rounds · bars up-down-up-up-down."],
  objs:[
-  {t:"note",w:"w",u:.3,y:1.5,name:"Epitaph",txt:"They took the flesh,\nthey took the name,\nthey left the house of it —\nand what was inside the house.\n\nSix letters."},
-  {t:"word",w:"e",u:.35,y:1.4,answer:"MARROW",set:["sealA"],sub:"Six bone wheels."},
-  {t:"simon",w:"s",u:.5,y:1.4,len:5,set:["sealB"],sub:"Five funeral bells, each a different tone."},
-  {t:"prop",kind:"pillar",f:[-5,4.4]},{t:"prop",kind:"pillar",f:[5,4.4]},
-  {t:"prop",kind:"statue",f:[0,-5]},{t:"prop",kind:"shelf",w:"e",u:.82}
+  {t:"note",w:"w",u:.22,y:1.5,name:"Epitaph",txt:"They took the flesh,\nthey took the name,\nthey left the house of it —\nand what was inside the house.\n\nSix letters."},
+  {t:"note",w:"w",u:.62,y:1.5,name:"Sexton's Card",txt:"THE BARS, left to right:\n\n    O   X   O   O   X\n\n(O raised, X lowered)\n\nThe bells and the chart teach themselves."},
+  {t:"word",w:"e",u:.28,y:1.4,answer:"MARROW",set:["sealA"],sub:"Six bone wheels."},
+  {t:"simon",w:"s",u:.3,y:1.4,len:5,set:["sealB"],sub:"Five funeral bells, each a different tone."},
+  {t:"memory",w:"e",u:.72,y:1.4,n:4,rounds:4,set:["sealC"],sub:"Sixteen niches behind grey glass."},
+  {t:"levers",w:"n",u:.78,n:5,target:[1,0,1,1,0],set:["sealD"]},
+  {t:"prop",kind:"pillar",f:[-6.6,5.0]},{t:"prop",kind:"pillar",f:[6.6,5.0]},
+  {t:"prop",kind:"statue",f:[0,-5.6]},{t:"prop",kind:"shelf",w:"s",u:.78},
+  {t:"prop",kind:"table",f:[-4.0,1.0]}
  ]},
 
-{name:"The Orrery", th:"observatory", sz:[14,13], par:320, door:{w:"s",u:.5,req:["sealA","sealB"]},
- obj:"Wind the orrery, then match the star chart.",
- hints:["The crank has a set number of turns; the brass plaque tells you how many.",
-        "The chart panel shows a constellation, then asks you to set it back. Four rounds.",
-        "Eleven turns on the crank."],
+{name:"The Orrery", th:"observatory", sz:[16,15], par:560, door:{w:"s",u:.5,req:["sealA","sealB","sealC","sealD","sealE"]},
+ obj:"Wind it, read it, aim it, count it, mend it.",
+ hints:["Five seals. The brass plaque gives the crank count and the post headings.",
+        "The keypad wants the crank count written twice, four digits.",
+        "Eleven turns · code 1111 · posts N E S W · chart four rounds · sort the tile."],
  objs:[
-  {t:"note",w:"n",u:.3,y:1.5,name:"Brass Plaque",txt:"ELEVEN turns will bring the outer ring\nround to the meridian.\n\nThen read the chart,\nand set the chart back."},
-  {t:"valve",w:"w",u:.45,y:1.3,turns:11,set:["sealA"],name:"Orrery Crank"},
-  {t:"memory",w:"e",u:.5,y:1.4,n:4,rounds:4,set:["sealB"],sub:"A field of pinprick lamps behind smoked glass."},
-  {t:"prop",kind:"machine",f:[0,0]},{t:"prop",kind:"pillar",f:[-5.4,-4.6]},
-  {t:"prop",kind:"pillar",f:[5.4,-4.6]},{t:"prop",kind:"desk",f:[4.4,3.6],ry:-.3}
+  {t:"note",w:"n",u:.24,y:1.5,name:"Brass Plaque",txt:"ELEVEN turns will bring the outer ring\nround to the meridian.\n\nTHE PANEL wants that count,\nwritten twice: four digits.\n\nTHE POSTS: north, east, south, west."},
+  {t:"note",w:"n",u:.66,y:1.5,name:"Observer's Slip",txt:"The chart shows a constellation\nand then asks for it back. Four times.\n\nThe index tile sorts 1 to 8,\nwith the gap at the end."},
+  {t:"valve",w:"w",u:.28,y:1.3,turns:11,set:["sealA"],name:"Orrery Crank"},
+  {t:"keypad",w:"w",u:.74,y:1.35,code:"1111",set:["sealB"],sub:"Four digits."},
+  {t:"posts",set:["sealC"],target:[0,1,2,3],
+   pts:[[-5.4,-5.0],[-1.8,-5.0],[1.8,-5.0],[5.4,-5.0]]},
+  {t:"memory",w:"e",u:.3,y:1.4,n:4,rounds:4,set:["sealD"],sub:"A field of pinprick lamps behind smoked glass."},
+  {t:"slide",w:"e",u:.74,y:1.4,seed:91,set:["sealE"],sub:"Eight numbered tiles and one empty slot."},
+  {t:"prop",kind:"machine",f:[0,0]},{t:"prop",kind:"pillar",f:[-6.8,-1.6]},
+  {t:"prop",kind:"pillar",f:[6.8,-1.6]},{t:"prop",kind:"desk",f:[4.8,4.4],ry:-.3}
  ]},
 
-{name:"Tessellation", th:"vault", sz:[13,13], par:320, door:{w:"e",u:.5,req:["sealA","sealB"]},
- obj:"Route the conduit and light the lattice.",
- hints:["Two panels. Neither depends on the other, so start with whichever you prefer.",
-        "The conduit is a rotate-the-segments grid; the lattice is a 4×4 lights-out board.",
-        "On the lattice, press the four centre cells."],
+{name:"Tessellation", th:"vault", sz:[16,15], par:540, door:{w:"e",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Four machines, four patterns, no clues you have not seen before.",
+ hints:["Four seals: the conduit, the lattice, the terminal block, and the optics.",
+        "The lattice is 4×4 — the four centre cells do it. The legend is not colour-matched.",
+        "Lattice: four centre cells · wires RED→I BLUE→IV GREEN→II AMBER→III · both path mirrors to '/'."],
  objs:[
-  {t:"note",w:"n",u:.3,y:1.5,name:"Vault Notice",txt:"CONDUIT: west inlet to east outlet.\nLATTICE: all sixteen cells lit.\n\nBoth, or neither."},
-  {t:"pipes",w:"w",u:.5,y:1.4,n:5,seed:83,set:["sealA"],sub:"Rotating conduit segments."},
-  {t:"lights",w:"s",u:.5,y:1.4,n:4,scr:[5,6,9,10],set:["sealB"],
-   sub:"Sixteen cells in a steel lattice."},
-  {t:"prop",kind:"pillar",f:[-5,-4.8]},{t:"prop",kind:"machine",f:[4.8,-4.4]},
-  {t:"prop",kind:"crate",f:[4.8,4.4]}
+  {t:"note",w:"n",u:.24,y:1.5,name:"Vault Notice",txt:"CONDUIT: west inlet to east outlet.\nLATTICE: all sixteen cells lit.\n   The four in the middle will do it."},
+  {t:"note",w:"n",u:.7,y:1.5,name:"Wiring Legend",txt:"DO NOT MATCH BY COLOUR\n\n  RED    → socket I\n  BLUE   → socket IV\n  GREEN  → socket II\n  AMBER  → socket III"},
+  {t:"pipes",w:"w",u:.28,y:1.4,n:5,seed:213,set:["sealA"],sub:"Rotating conduit segments."},
+  {t:"lights",w:"w",u:.74,y:1.4,n:4,scr:[5,6,9,10],set:["sealB"],sub:"Sixteen cells in a steel lattice."},
+  {t:"wires",w:"s",u:.5,y:1.4,set:["sealC"],
+   left:[{n:"RED",c:"#e0574f"},{n:"BLUE",c:"#5b8cff"},{n:"GREEN",c:"#5fd08a"},{n:"AMBER",c:"#f2a93b"}],
+   right:["I","II","III","IV"],map:[0,3,1,2],sub:"Four leads, four sockets."},
+  {t:"laser",g:[5,5],cell:1.45,o:[0,-1.6],emit:{c:0,r:2,d:0},recv:{c:4,r:0},
+   mirrors:[[2,2,1],[2,0,1],[1,4,0]],set:["sealD"]},
+  {t:"prop",kind:"pillar",f:[-6.8,5.4]},{t:"prop",kind:"machine",f:[6.6,5.2]},
+  {t:"prop",kind:"crate",f:[6.6,2.4]}
  ]},
 
-{name:"The Long Hall", th:"temple", sz:[17,11], par:350, door:{w:"e",u:.5,req:["sealA","sealB","sealC"]},
- obj:"Walk the hall three times, three different ways.",
- hints:["Three mechanisms strung down the length of the hall: braziers, floor stones, and a panel.",
-        "The stones are numbered — walk them 1, 2, 3, 4 from the west end.",
-        "Braziers 5·1·4·6·2·3. Panel code 6413."],
+{name:"The Long Hall", th:"temple", sz:[20,12], par:600, door:{w:"e",u:.5,req:["sealA","sealB","sealC","sealD","sealE"]},
+ obj:"Walk the hall five times, five different ways.",
+ hints:["Five seals strung down the length of the hall: braziers, stones, a panel, posts, sparks.",
+        "The panel wants counts: braziers, stones, statues, doors.",
+        "Braziers 5·1·4·6·2·3 · stones 1-4 in order · code 6431 · posts N N E S W · five sparks."],
  objs:[
-  {t:"note",w:"n",u:.12,y:1.5,name:"Processional Rite",txt:"THE BRAZIERS, in this order:\n   fifth, first, fourth, sixth, second, third\n\nTHE STONES: in the order they are numbered.\n\nTHE PANEL, four digits:\n   the count of braziers,\n   the count of stones,\n   the count of doors,\n   the count of statues."},
-  {t:"btnseq",kind:"torch",w:"n",u:.58,n:6,order:[5,1,4,6,2,3],set:["sealA"]},
-  {t:"plates",set:["sealB"],pts:[[-6,3.2],[-2,3.2],[2,3.2],[6,3.2]],order:[0,1,2,3]},
-  {t:"keypad",w:"s",u:.16,y:1.35,code:"6413",set:["sealC"],sub:"A panel of worn ivory keys."},
-  {t:"prop",kind:"statue",f:[-4.4,-3.6]},{t:"prop",kind:"statue",f:[0,-3.6]},
-  {t:"prop",kind:"statue",f:[4.4,-3.6]},
-  {t:"prop",kind:"pillar",f:[-7,3.4]},{t:"prop",kind:"pillar",f:[7,3.4]}
+  {t:"note",w:"n",u:.08,y:1.5,name:"Processional Rite",txt:"THE BRAZIERS, in this order:\n   fifth, first, fourth, sixth, second, third\n\nTHE STONES: in the order they are numbered.\n\nTHE PANEL, four digits:\n   the count of braziers,\n   the count of stones,\n   the count of statues,\n   the count of doors.\n\nTHE POSTS: north, north, east, south, west."},
+  {t:"btnseq",kind:"torch",w:"n",u:.56,n:6,order:[5,1,4,6,2,3],set:["sealA"]},
+  {t:"plates",set:["sealB"],pts:[[-7.2,3.6],[-2.4,3.6],[2.4,3.6],[7.2,3.6]],order:[0,1,2,3]},
+  {t:"keypad",w:"s",u:.12,y:1.35,code:"6431",set:["sealC"],sub:"A panel of worn ivory keys."},
+  {t:"posts",set:["sealD"],target:[0,0,1,2,3],
+   pts:[[-7.6,-.6],[-3.8,-.6],[0,-.6],[3.8,-.6],[7.6,-.6]]},
+  {t:"gems",set:["sealE"],kind:"spark",pts:[[-9.0,.6,4.6],[9.0,.6,4.6],[-5.4,1.95,-4.2],
+                                             [0,1.95,-4.2],[5.4,1.95,-4.2]]},
+  {t:"prop",kind:"statue",f:[-5.4,-4.2]},{t:"prop",kind:"statue",f:[0,-4.2]},
+  {t:"prop",kind:"statue",f:[5.4,-4.2]},
+  {t:"prop",kind:"pillar",f:[-9.2,-1.0]},{t:"prop",kind:"pillar",f:[9.2,-1.0]}
  ]},
 
-{name:"The Cipher", th:"void", sz:[14,14], par:360, door:{w:"n",u:.5,req:["sealA","sealB","sealC"]},
- obj:"A word, a number that comes out of it, and a beam.",
- hints:["Solve the word first — the keypad code is built from its letters.",
-        "Each letter's position in the alphabet, in order, is the four-digit code.",
-        "The word is CAGE → 3, 1, 7, 5 → code 3175. Then fix the four mirrors on the beam path."],
+{name:"The Cipher", th:"void", sz:[17,16], par:600, door:{w:"n",u:.5,req:["sealA","sealB","sealC","sealD","sealE"]},
+ obj:"A word, a number made from it, a beam, a lattice, and one thing on a clock.",
+ hints:["Five seals. Solve the word first — the keypad code is built out of its letters.",
+        "Give each letter its position in the alphabet, in order. The rings run off the timed lever.",
+        "CAGE → 3175 · four mirrors on the path · lattice: four centre cells · rings ☾ ✦ ⚷ ☀."],
  objs:[
-  {t:"note",w:"w",u:.22,y:1.5,name:"First Slab",txt:"Four letters.\n\nI have bars but pour nothing.\nI hold what has wings.\nI am not a room —\nand yet I am this room."},
-  {t:"note",w:"w",u:.62,y:1.5,name:"Second Slab",txt:"Take the word.\nGive each letter its place in the alphabet.\n\nThat, in order, is the number."},
-  {t:"word",w:"e",u:.26,y:1.4,answer:"CAGE",set:["sealA"],sub:"Four obsidian wheels."},
-  {t:"keypad",w:"e",u:.7,y:1.35,code:"3175",req:["sealA"],set:["sealB"],
+  {t:"note",w:"w",u:.16,y:1.5,name:"First Slab",txt:"Four letters.\n\nI have bars but pour nothing.\nI hold what has wings.\nI am not a room —\nand yet I am this room."},
+  {t:"note",w:"w",u:.48,y:1.5,name:"Second Slab",txt:"Take the word.\nGive each letter its place in the alphabet.\n\nThat, in order, is the number."},
+  {t:"note",w:"w",u:.8,y:1.5,name:"Third Slab",txt:"THE LATTICE: all sixteen lit.\n   The four in the middle.\n\nTHE RINGS run off the black lever,\nand the black lever holds for\nTHIRTY SECONDS only:\n\n   moon, star, key, sun."},
+  {t:"word",w:"e",u:.2,y:1.4,answer:"CAGE",set:["sealA"],sub:"Four obsidian wheels."},
+  {t:"keypad",w:"e",u:.52,y:1.35,code:"3175",req:["sealA"],set:["sealB"],
    lock:"The panel is cold and will not accept input yet.",sub:"Four digits."},
-  {t:"laser",g:[6,6],cell:1.4,o:[0,1.0],emit:{c:0,r:0,d:1},recv:{c:5,r:2},
+  {t:"laser",g:[6,6],cell:1.4,o:[0,.6],emit:{c:0,r:0,d:1},recv:{c:5,r:2},
    mirrors:[[0,3,0],[2,3,1],[2,0,1],[5,0,0],[4,5,1]],set:["sealC"]},
-  {t:"prop",kind:"pillar",f:[-5.8,-5.6]},{t:"prop",kind:"pillar",f:[5.8,-5.6]},
-  {t:"prop",kind:"statue",f:[0,5.9]}
+  {t:"lights",w:"s",u:.3,y:1.4,n:4,scr:[5,6,9,10],set:["sealD"],sub:"Sixteen cells in a black lattice."},
+  {t:"tswitch",w:"s",u:.72,secs:30,set:["power"],name:"Black Lever"},
+  {t:"dials",w:"e",u:.84,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[1,2,3,0],
+   req:["power"],set:["sealE"],lock:"The rings are locked solid. Something has to free them.",
+   sub:"Four black rings."},
+  {t:"prop",kind:"pillar",f:[-7.2,-6.6]},{t:"prop",kind:"pillar",f:[7.2,-6.6]},
+  {t:"prop",kind:"statue",f:[-7.2,6.6]}
  ]},
 
-{name:"The Archive Door", th:"void", sz:[16,14], par:430, door:{w:"s",u:.5,req:["sealA","sealB","sealC","sealD"]},
- obj:"Four seals. Everything you have learned, at once.",
- hints:["Four seals: the rings, the breakers, the beam, and six sparks scattered around the hall.",
-        "The ring inscription is written to be read bottom to top, not top to bottom.",
-        "Rings ☾ ✦ ⚷ ☀ · breakers up-up-down-up-down-up · five mirrors to flip · six sparks."],
+{name:"The Archive Door", th:"void", sz:[19,16], par:780, door:{w:"s",u:.5,req:["sealA","sealB","sealC","sealD","sealE","sealF"]},
+ obj:"Six seals. Everything you have learned, at once.",
+ hints:["Six seals: rings, breakers, the beam, six sparks, five posts, and a final code.",
+        "The ring inscription is written to be read bottom to top. The code counts things in this hall.",
+        "Rings ☾ ✦ ⚷ ☀ · breakers up-up-down-up-down-up · posts E S E N W · code 6521."],
  objs:[
-  {t:"note",w:"e",u:.18,y:1.5,name:"The Last Instruction",txt:"FOUR SEALS.\n\nTHE RINGS — read this list bottom to top:\n        the sun\n        the key\n        the star\n        the moon\n\nTHE BREAKERS —   O  O  X  O  X  O\n\nThe beam and the sparks explain themselves."},
-  {t:"dials",w:"w",u:.3,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[1,2,3,0],set:["sealA"],
+  {t:"note",w:"e",u:.14,y:1.5,name:"The Last Instruction",txt:"SIX SEALS.\n\nTHE RINGS — read this list bottom to top:\n        the sun\n        the key\n        the star\n        the moon\n\nTHE BREAKERS —   O  O  X  O  X  O\n\nTHE POSTS — east, south, east, north, west."},
+  {t:"note",w:"e",u:.5,y:1.5,name:"The Tally",txt:"THE FINAL PANEL, four digits:\n\n   the count of breakers,\n   the count of posts,\n   the count of pillars,\n   the count of doors."},
+  {t:"dials",w:"w",u:.24,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[1,2,3,0],set:["sealA"],
    sub:"Four black rings. The last lock the archive has."},
-  {t:"levers",w:"n",u:.5,n:6,target:[1,1,0,1,0,1],set:["sealB"]},
-  {t:"laser",g:[7,6],cell:1.35,o:[3.0,-.4],emit:{c:0,r:5,d:3},recv:{c:6,r:2},
+  {t:"levers",w:"n",u:.3,n:6,target:[1,1,0,1,0,1],set:["sealB"]},
+  {t:"laser",g:[7,6],cell:1.25,o:[4.5,.6],emit:{c:0,r:5,d:3},recv:{c:6,r:2},
    mirrors:[[0,2,1],[3,2,0],[3,5,0],[6,5,1],[5,3,0],[1,4,1]],set:["sealC"]},
   {t:"gems",set:["sealD"],kind:"spark",
-   pts:[[-6.8,.6,4.6],[-1.8,2.15,-5.4],[-6.9,1.75,-1.4],[0,1.15,5.8],[-3.4,.6,5.8],[-6.8,.6,1.6]]},
-  {t:"prop",kind:"pillar",f:[-7,-5.6]},{t:"prop",kind:"pillar",f:[7,-5.6]},
-  {t:"prop",kind:"statue",f:[-1.8,-5.4]},
-  {t:"prop",kind:"table",f:[0,5.8]},{t:"prop",kind:"shelf",w:"w",u:.5}
+   pts:[[-8.2,.6,5.6],[-2.2,2.15,-6.4],[-8.3,1.3,-1.6],[-5.0,.6,5.6],[-8.2,.6,2.0],[-8.2,.6,-4.4]]},
+  {t:"posts",set:["sealE"],target:[1,2,1,0,3],
+   pts:[[-7.2,-5.6],[-3.6,-5.6],[0,-5.6],[3.6,-5.6],[7.2,-5.6]]},
+  {t:"keypad",w:"w",u:.74,y:1.35,code:"6521",set:["sealF"],sub:"Four digits. The last one."},
+  {t:"prop",kind:"pillar",f:[8.8,-7.0]},{t:"prop",kind:"pillar",f:[8.8,7.0]},
+  {t:"prop",kind:"statue",f:[-2.2,-6.4]},{t:"prop",kind:"shelf",w:"w",u:.55}
  ]}
 ];
 
@@ -1142,7 +1331,7 @@ const LEVELS=[
 const G={
   scene:null,cam:null,ren:null,clock:null,
   lvl:null,idx:0,W:10,D:10,H:3.4,
-  flags:null,objs:[],hot:[],cols:[],lights:[],
+  flags:null,objs:[],hot:[],cols:[],lights:[],lightCount:0,
   inv:[],state:"menu",time:0,hints:0,started:false,
   yaw:0,pitch:0,pos:null,vel:null,onGround:true,
   keys:{},lookTarget:null,animT:0
@@ -1202,6 +1391,9 @@ function place(s){
   }
 }
 function addCol(x,z,w,d,top){G.cols.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,top:top});}
+/* shaders get expensive past a dozen lights — spend the budget deliberately */
+function tryLight(l,cost){ if(G.lightCount+(cost||1)>13)return null;
+  G.lightCount+=(cost||1);G.scene.add(l);return l; }
 
 /* ============================================================
    ROOM
@@ -1250,7 +1442,7 @@ function buildRoom(th){
   const spots=[[-W/4,H-.75,-D/4],[W/4,H-.75,-D/4],[-W/4,H-.75,D/4],[W/4,H-.75,D/4]];
   spots.forEach(p=>{
     const l=new THREE.PointLight(T.lamp,T.li*.8,Math.max(W,D)*1.1,1.9);
-    l.position.set(p[0],p[1],p[2]);G.scene.add(l);G.lights.push(l);
+    l.position.set(p[0],p[1],p[2]);tryLight(l);G.lights.push(l);
     const g=sph(.11,emat(T.lamp,1.4));g.position.copy(l.position);G.scene.add(g);
     const rod=cyl(.02,.02,.75,mat(0x22262c));rod.position.set(p[0],H-.37,p[2]);G.scene.add(rod);
     const sh=new THREE.Mesh(new THREE.ConeGeometry(.26,.26,14,1,true),
@@ -1294,10 +1486,13 @@ function buildDoor(spec){
       return miss? "The Door — "+(this.need.length-miss)+" of "+this.need.length+" seals released"
                  : "Open the Door";},
     can(){return !this.open;},
+    sealsOK(){return this.need.every(f=>G.flags.has(f));},
     act(){
-      if(!this.can()){Audio_.no();toast("Still sealed. "+
-        this.need.filter(f=>!G.flags.has(f)).length+" mechanism(s) to go.","bad");shakeDoor(this);return;}
-      if(this.open)return; this.open=true; Audio_.unlock(); levelCleared();
+      if(this.open)return;
+      if(!this.sealsOK()){Audio_.no();toast("Still sealed. "+
+        this.need.filter(f=>!G.flags.has(f)).length+" mechanism(s) still to release.","bad");
+        shakeDoor(this);return;}
+      this.open=true; Audio_.unlock(); levelCleared();
     },
     update(dt){
       this.seals.forEach((s,i)=>{
@@ -1388,7 +1583,7 @@ function buildProp(s){
         new THREE.MeshStandardMaterial({color:0x3a3026,side:THREE.DoubleSide,roughness:.8}));
       sh.position.y=2.2;g.add(sh);
       const bulb=sph(.09,emat(T.lamp,2.1));bulb.position.y=2.08;g.add(bulb);
-      const l=new THREE.PointLight(T.lamp,.85,7,1.9);l.position.set(p.x,p.y+2.05,p.z);G.scene.add(l);
+      const l=new THREE.PointLight(T.lamp,.85,7,1.9);l.position.set(p.x,p.y+2.05,p.z);tryLight(l);
       break;}
     case "machine":{
       const m=new THREE.MeshStandardMaterial({map:makeTex("metal",0x596069,13),roughness:.6,metalness:.5});
@@ -1480,7 +1675,7 @@ function bKey(s){
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.075,.022,8,18),km);ring.position.x=-.2;g.add(ring);
   const b1=box(.03,.09,.03,km);b1.position.set(.14,-.05,0);g.add(b1);
   const b2=box(.03,.06,.03,km);b2.position.set(.08,-.035,0);g.add(b2);
-  const l=new THREE.PointLight(s.col||0xffd27a,.5,2.2,2);l.position.copy(g.position);G.scene.add(l);
+  const l=new THREE.PointLight(s.col||0xffd27a,.5,2.2,2);l.position.copy(g.position);tryLight(l);
   const o={spec:s,root:g,hot:[shaft,ring],taken:false,light:l,base:g.position.y,
     label(){return "Take the "+s.name;},can(){return true;},
     act(){ if(this.taken)return;this.taken=true;Audio_.pick();
@@ -1508,18 +1703,19 @@ function bGems(s){
     const core=new THREE.Mesh(new THREE.OctahedronGeometry(.15,0),m);g.add(core);
     const halo=new THREE.Mesh(new THREE.OctahedronGeometry(.24,0),
       new THREE.MeshBasicMaterial({color:st.c,transparent:true,opacity:.14}));g.add(halo);
-    const l=new THREE.PointLight(st.c,.55,2.6,2);l.position.copy(g.position);G.scene.add(l);
+    const l=i<3?tryLight(new THREE.PointLight(st.c,.55,2.6,2)):null;
+    if(l)l.position.copy(g.position);
     const o={spec:s,root:g,hot:[core,halo],taken:false,light:l,base:pt[1],
       label(){return "Take "+st.n+"  ("+got+"/"+total+" found)";},can(){return true;},
       act(){ if(this.taken)return;this.taken=true;got++;Audio_.pick();
-        G.scene.remove(this.root);G.scene.remove(this.light);
+        G.scene.remove(this.root);if(this.light)G.scene.remove(this.light);
         G.hot=G.hot.filter(x=>this.hot.indexOf(x)<0);
         toast(st.n+" "+got+" of "+total,"good");
         setInvCount(st.n,got+" / "+total,"#"+st.c.toString(16).padStart(6,"0"));
         if(got===total){Audio_.unlock();toast("All "+total+" collected.","good");grant(s);} },
       update(dt){ if(this.taken)return; this.root.rotation.y+=dt*1.5;this.root.rotation.x+=dt*.6;
         this.root.position.y=this.base+Math.sin(G.animT*2+i)*.07;
-        this.light.intensity=.45+Math.sin(G.animT*3+i)*.15;}};
+        if(this.light)this.light.intensity=.45+Math.sin(G.animT*3+i)*.15;}};
     G.objs.push(o);hotify(o);
   });
   setInvCount(st.n,"0 / "+total,"#"+st.c.toString(16).padStart(6,"0"));
@@ -1678,7 +1874,8 @@ function bBtnSeq(s){
       const flame=new THREE.Mesh(new THREE.ConeGeometry(.13,.36,10),
         new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0}));
       flame.position.y=1.72;st.add(flame);
-      const lightP=new THREE.PointLight(0xffa040,0,4.5,2);lightP.position.set(off+i*gap,1.8,.5);g.add(lightP);
+      const lightP=new THREE.PointLight(0xffa040,0,4.5,2);lightP.position.set(off+i*gap,1.8,.5);
+      if(G.lightCount<13){G.lightCount++;g.add(lightP);}
       const plq=box(.3,.3,.03,mat(0x2a2f36,{metalness:.5}));plq.position.set(off+i*gap,.72,.58);g.add(plq);
       const num=box(.25,.25,.01,new THREE.MeshBasicMaterial({map:labelTex(String(idx),"#11151a","#ffc86b")}));
       num.position.set(off+i*gap,.72,.60);g.add(num);
@@ -1878,6 +2075,75 @@ function bLaser(s){
   trace();
   G.objs.push({spec:s,root:root,hot:[],update(dt){
     beamM.opacity=.7+Math.sin(G.animT*9)*.14; }});
+}
+
+/* ---------- ROTATING MARKER POSTS ---------- */
+const COMPASS=["N","E","S","W"];
+function bPosts(s){
+  const n=s.pts.length,state=s.pts.map(()=>0);let solved=false;
+  const lamps=[],caps=[];
+  s.pts.forEach((pt,i)=>{
+    const g=new THREE.Group();g.position.set(pt[0],0,pt[1]);G.scene.add(g);
+    const m=new THREE.MeshStandardMaterial({map:makeTex("marble",0x8a8272,21+i),roughness:.85});
+    const base=box(.68,.16,.68,mat(0x3a3f47,{metalness:.5}));base.position.y=.08;g.add(base);
+    const col=cyl(.22,.26,1.0,m,10);col.position.y=.66;g.add(col);
+    const cap=new THREE.Group();cap.position.y=1.2;g.add(cap);
+    const disc=cyl(.3,.3,.1,mat(0x4a5058,{metalness:.6,roughness:.4}),12);cap.add(disc);
+    const arrow=new THREE.Mesh(new THREE.ConeGeometry(.11,.3,4),
+      new THREE.MeshStandardMaterial({color:0xffc86b,emissive:0xf2a93b,emissiveIntensity:.55}));
+    arrow.rotation.x=-Math.PI/2;arrow.position.set(0,.07,-.24);cap.add(arrow);
+    const tail=box(.06,.05,.22,mat(0x2a2f36));tail.position.set(0,.07,.1);cap.add(tail);
+    const num=box(.19,.19,.01,new THREE.MeshBasicMaterial({map:labelTex(String(i+1),"#11151a","#ffc86b")}));
+    num.rotation.x=-Math.PI/2;num.position.set(0,.135,.02);cap.add(num);
+    const lamp=sph(.05,emat(0x552222,.6));lamp.position.set(0,1.42,0);g.add(lamp);
+    addCol(pt[0],pt[1],.75,.75,1.45);
+    lamps.push(lamp);caps.push(cap);
+    const o={spec:s,root:g,hot:[disc,arrow,col],
+      label(){return "Marker "+(i+1)+" — pointing "+COMPASS[state[i]];},
+      can(){return !solved;},
+      act(){ if(solved)return;state[i]=(state[i]+1)%4;
+        Audio_.beep(260+state[i]*50,.12,"sawtooth",.09);check(); },
+      update(dt){ cap.rotation.y=lerp(cap.rotation.y,-state[i]*Math.PI/2,Math.min(1,dt*8));
+        const ok=state[i]===s.target[i];
+        lamp.material.color.setHex(ok?0x5fd08a:0x552222);
+        lamp.material.emissive.setHex(ok?0x5fd08a:0x552222); }};
+    G.objs.push(o);hotify(o);
+  });
+  function check(){ if(solved)return;
+    if(state.every((v,i)=>v===s.target[i])){solved=true;Audio_.unlock();
+      toast("The markers align. Something gives underfoot.","good");grant(s);} }
+}
+
+/* ---------- TIMED POWER LEVER ---------- */
+function bTSwitch(s){
+  const p=place(s),g=new THREE.Group();
+  g.position.set(p.x,1.35,p.z);g.rotation.y=p.ry;G.scene.add(g);
+  const plate=box(.5,.95,.1,mat(0x3a2018,{metalness:.5,roughness:.5}));plate.position.z=.05;g.add(plate);
+  screwsOn(g,.5,.95,.1);
+  const pivot=new THREE.Group();pivot.position.set(0,.2,.13);g.add(pivot);
+  const arm=cyl(.04,.05,.5,mat(0x8d949c,{metalness:.8,roughness:.3}),10);arm.position.y=-.25;pivot.add(arm);
+  const knob=sph(.09,mat(0xe0574f,{roughness:.45}));knob.position.y=-.5;pivot.add(knob);
+  const gauge=box(.3,.16,.02,new THREE.MeshBasicMaterial({map:labelTex("0","#0a0e13","#e0574f")}));
+  gauge.position.set(0,.38,.11);g.add(gauge);
+  let left=0,shown=-1;
+  const flag=(s.set||[])[0];
+  const o={spec:s,root:g,hot:[arm,knob,plate],
+    label(){return left>0?((s.name||"Power lever")+" — "+Math.ceil(left)+"s of power left")
+                        :("Throw the "+(s.name||"power lever")+"  ("+s.secs+"s)");},
+    can(){return true;},
+    act(){ left=s.secs;setFlag(flag);Audio_.unlock();
+      toast("Power for "+s.secs+" seconds. Move.","good"); },
+    update(dt){
+      pivot.rotation.x=lerp(pivot.rotation.x,left>0?-.7:.35,Math.min(1,dt*10));
+      if(left>0){ left-=dt;
+        if(left<=0){ left=0;if(flag&&G.flags.has(flag)){G.flags.delete(flag);UI.objective();}
+          Audio_.no();toast("The power drops out.","bad"); } }
+      const w=Math.ceil(left);
+      if(w!==shown){shown=w;
+        gauge.material.map=labelTex(String(w),"#0a0e13",w>0?"#5fd08a":"#e0574f");
+        gauge.material.needsUpdate=true;}
+    }};
+  G.objs.push(o);hotify(o);
 }
 
 /* ---------- MODAL-BACKED DEVICES ---------- */
@@ -2345,7 +2611,7 @@ function pzChoice(s,win){
 const BUILD={
   note:bNote, key:bKey, gems:bGems, switch:bSwitch, container:bContainer,
   painting:bPainting, levers:bLevers, btnseq:bBtnSeq, plates:bPlates,
-  valve:bValve, laser:bLaser, prop:buildProp,
+  valve:bValve, laser:bLaser, prop:buildProp, posts:bPosts, tswitch:bTSwitch,
   keypad :s=>bModalDevice(s,{w:.64,h:.84,name:"keypad", verb:"Use the keypad",
             win:"Code accepted.",     open:w=>pzKeypad(s,w)}),
   dials  :s=>bModalDevice(s,{w:.92,h:.62,name:"ring lock",verb:"Turn the rings",
@@ -2379,7 +2645,7 @@ function clearScene(){
     if(G.cam&&G.cam.parent)G.cam.parent.remove(G.cam);
   }
   G.scene=new THREE.Scene();
-  G.objs=[];G.hot=[];G.cols=[];G.lights=[];G.inv=[];
+  G.objs=[];G.hot=[];G.cols=[];G.lights=[];G.inv=[];G.lightCount=0;
   $("#inv").innerHTML="";
 }
 function loadLevel(i){
@@ -2421,9 +2687,9 @@ function buildViewmodel(){
   const sleeve=mat(a.suit,{roughness:.8}),glove=mat(a.trim,{roughness:.6,metalness:.2});
   [[-1],[1]].forEach(sd=>{
     const arm=new THREE.Group();
-    arm.position.set(sd[0]*.30,-.30,-.55);
-    arm.rotation.set(-.10,sd[0]*.30,sd[0]*.26);
-    arm.scale.setScalar(.60);
+    arm.position.set(sd[0]*.34,-.40,-.62);
+    arm.rotation.set(-.06,sd[0]*.34,sd[0]*.24);
+    arm.scale.setScalar(.40);
     const s=box(.14,.14,.46,sleeve);s.position.z=.26;arm.add(s);
     const cuff=box(.16,.16,.07,glove);cuff.position.z=.03;arm.add(cuff);
     const g=box(.15,.115,.21,glove);g.position.z=-.10;arm.add(g);
@@ -2667,6 +2933,18 @@ function togglePause(){
     $("#pauseSub").textContent="Room "+(G.idx+1)+" — "+G.lvl.name;releaseLook();}
   else if(G.state==="pause"){G.state="play";$("#pause").classList.remove("on");}
 }
+function syncSound(){
+  Audio_.on=Save.d.sound!==false;
+  $$(".soundToggle").forEach(b=>{b.textContent="Sound: "+(Audio_.on?"On":"Off");
+    b.style.color=Audio_.on?"":"var(--dim)";});
+}
+function toggleSound(){
+  Save.d.sound=!(Save.d.sound!==false); Save.save(); syncSound();
+  if(Audio_.on){Audio_.init();Audio_.ok();}
+}
+$$(".soundToggle").forEach(b=>b.onclick=toggleSound);
+$("#quitBtn").onclick=()=>leaveToMenu();
+$("#pQuitTitle").onclick=()=>{$("#pause").classList.remove("on");leaveToMenu();Screens.go("title");};
 $("#pauseBtn").onclick=()=>togglePause();
 $("#pResume").onclick=()=>togglePause();
 $("#pRestart").onclick=()=>{$("#pause").classList.remove("on");loadLevel(G.idx);};
@@ -2884,6 +3162,7 @@ function frame(){
    BOOT
    ============================================================ */
 Save.load();
+syncSound();
 initGL();
 sizeTitleArt();
 UI.syncCoins();
