@@ -1,0 +1,2897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>test code</title>
+<link rel="icon" href="data:,">
+<style>
+:root{
+  --bg:#0b0d10; --panel:#13171d; --panel2:#191f27; --line:#2a323d;
+  --ink:#e8eef6; --dim:#8b97a6; --amber:#f2a93b; --amber2:#ffc86b;
+  --teal:#3fd0c9; --red:#e0574f; --green:#5fd08a; --violet:#a98bff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+  font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;user-select:none;touch-action:none}
+#gl{display:block;position:fixed;inset:0}
+.av canvas{display:block}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+
+/* ---------- shared chrome ---------- */
+.screen{position:fixed;inset:0;display:none;flex-direction:column;z-index:20;
+  background:radial-gradient(1200px 800px at 50% -10%,#1b2029 0%,#0b0d10 62%)}
+.screen.on{display:flex}
+.vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
+  background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0) 40%,rgba(0,0,0,.72) 100%)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;
+  padding:.72em 1.5em;border-radius:10px;border:1px solid var(--line);
+  background:linear-gradient(180deg,#1e242d,#151a21);letter-spacing:.04em;
+  font-weight:600;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:var(--amber);color:var(--amber2);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.primary{background:linear-gradient(180deg,#f2a93b,#d0862a);color:#231703;border-color:#f7c777}
+.btn.primary:hover{color:#231703;filter:brightness(1.08)}
+.btn.ghost{background:none}
+.btn.sm{padding:.45em .9em;font-size:13px;border-radius:8px}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.hdr{display:flex;align-items:center;gap:14px;padding:18px 26px;border-bottom:1px solid var(--line);
+  background:rgba(10,12,15,.6);backdrop-filter:blur(8px);flex:0 0 auto}
+.hdr h2{font-size:19px;letter-spacing:.18em;text-transform:uppercase;font-weight:700}
+.spacer{flex:1}
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:26px;scrollbar-width:thin}
+.scroll::-webkit-scrollbar{width:9px}
+.scroll::-webkit-scrollbar-thumb{background:#2b333f;border-radius:9px}
+.coinchip{display:inline-flex;align-items:center;gap:7px;padding:.4em .85em;border-radius:99px;
+  background:#1b1206;border:1px solid #5c4113;color:var(--amber2);font-weight:700;font-size:14px}
+.coinchip .c{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 32% 30%,#ffe6a8,#e2a028 60%,#9a6712);
+  box-shadow:0 0 8px rgba(242,169,59,.5)}
+
+/* ---------- title screen ---------- */
+#title{align-items:center;justify-content:center;text-align:center;overflow:hidden}
+#titleArt{position:absolute;inset:0;opacity:.5}
+#titleInner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px}
+.eyebrow{letter-spacing:.62em;font-size:12px;color:var(--dim);text-transform:uppercase;margin-left:.62em}
+#title h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(42px,9vw,96px);line-height:.94;
+  letter-spacing:.02em;font-weight:400;
+  background:linear-gradient(180deg,#fff4de 0%,#f2a93b 55%,#8a5a12 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 6px 30px rgba(242,169,59,.28))}
+#title .sub{color:var(--dim);max-width:52ch;line-height:1.6;margin:14px 0 26px;font-size:15px}
+.menu{display:flex;flex-direction:column;gap:11px;width:min(320px,86vw)}
+.menu .btn{width:100%;padding:.85em 1.2em;font-size:15px;letter-spacing:.1em;text-transform:uppercase}
+.foot{position:absolute;bottom:16px;left:0;right:0;text-align:center;color:#4d5765;font-size:12px;z-index:2}
+.progbar{width:min(320px,86vw);height:6px;border-radius:99px;background:#171c23;overflow:hidden;margin-top:20px;border:1px solid var(--line)}
+.progbar i{display:block;height:100%;background:linear-gradient(90deg,#3fd0c9,#f2a93b);border-radius:99px;transition:.5s}
+
+/* ---------- level select ---------- */
+.acts{display:flex;flex-direction:column;gap:30px;max-width:1080px;margin:0 auto}
+.act h3{font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);
+  margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.act h3:after{content:"";flex:1;height:1px;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
+.lv{position:relative;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#161b22,#11151b);
+  padding:12px 13px 11px;text-align:left;transition:.15s;overflow:hidden;min-height:104px;
+  display:flex;flex-direction:column;gap:3px}
+.lv:not(.locked):hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.5)}
+.lv .n{font-family:Georgia,serif;font-size:26px;line-height:1;color:var(--amber2)}
+.lv .t{font-size:12.5px;font-weight:600;line-height:1.25;margin-top:2px}
+.lv .m{font-size:11px;color:var(--dim);margin-top:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lv.locked{opacity:.4;cursor:default;filter:grayscale(.7)}
+.lv.locked .n:after{content:" 🔒";font-size:15px}
+.lv.done{border-color:#2c5a44}
+.lv.done .n{color:var(--green)}
+.lv .stars{letter-spacing:1px;font-size:11px;color:var(--amber)}
+.lv .tag{position:absolute;top:9px;right:9px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:2px 5px}
+
+/* ---------- avatars ---------- */
+.avgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;max-width:1080px;margin:0 auto}
+.av{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#161b22,#11151b);
+  padding:14px;display:flex;flex-direction:column;align-items:center;gap:9px;transition:.15s;text-align:center}
+.av:hover{transform:translateY(-2px);border-color:#3d4855}
+.av canvas{width:96px;height:96px;image-rendering:auto;border-radius:12px;background:radial-gradient(circle at 50% 38%,#232a34,#12161c)}
+.av .nm{font-size:13px;font-weight:700;letter-spacing:.03em}
+.av .ds{font-size:11px;color:var(--dim);line-height:1.35;min-height:29px}
+.av.owned{border-color:#33404f}
+.av.equipped{border-color:var(--teal);box-shadow:0 0 0 1px rgba(63,208,201,.35) inset}
+.av .act{width:100%;font-size:12px;padding:.5em}
+.av.locked canvas{filter:grayscale(1) brightness(.5)}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:none;font-variant-numeric:tabular-nums}
+#hud.on{display:block}
+.hudtop{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;padding:12px 16px;
+  background:linear-gradient(180deg,rgba(6,8,11,.86),rgba(6,8,11,0))}
+.pill{display:flex;align-items:center;gap:8px;padding:.42em .9em;border-radius:9px;
+  background:rgba(16,20,26,.82);border:1px solid var(--line);font-size:14px;font-weight:600;backdrop-filter:blur(6px)}
+.pill small{color:var(--dim);font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+#timeVal.over{color:var(--red)}
+.hudtop .btn{pointer-events:auto}
+#crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);
+  transition:.12s}
+#crosshair i{position:absolute;background:rgba(255,255,255,.85);border-radius:2px;box-shadow:0 0 4px rgba(0,0,0,.9)}
+#crosshair i:nth-child(1){left:50%;top:0;width:2px;height:6px;margin-left:-1px}
+#crosshair i:nth-child(2){left:50%;bottom:0;width:2px;height:6px;margin-left:-1px}
+#crosshair i:nth-child(3){top:50%;left:0;height:2px;width:6px;margin-top:-1px}
+#crosshair i:nth-child(4){top:50%;right:0;height:2px;width:6px;margin-top:-1px}
+#crosshair.hot{transform:translate(-50%,-50%) scale(1.45) rotate(45deg)}
+#crosshair.hot i{background:var(--amber2)}
+#prompt{position:absolute;left:50%;top:calc(50% + 34px);transform:translateX(-50%);
+  padding:.42em .95em;border-radius:8px;background:rgba(10,13,17,.85);border:1px solid var(--line);
+  font-size:13.5px;white-space:nowrap;opacity:0;transition:.12s;backdrop-filter:blur(6px);max-width:80vw;overflow:hidden;text-overflow:ellipsis}
+#prompt.on{opacity:1}
+#prompt b{color:var(--amber2)}
+#inv{position:absolute;left:16px;bottom:16px;display:flex;gap:8px;flex-wrap:wrap;max-width:46vw}
+.item{display:flex;align-items:center;gap:7px;padding:.4em .8em;border-radius:8px;font-size:12.5px;
+  background:rgba(16,20,26,.82);border:1px solid var(--line);backdrop-filter:blur(6px);animation:pop .3s}
+.item .d{width:9px;height:9px;border-radius:3px;box-shadow:0 0 8px currentColor;background:currentColor}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+#objective{position:absolute;right:16px;bottom:16px;max-width:min(330px,44vw);padding:11px 14px;border-radius:10px;
+  background:rgba(16,20,26,.82);border:1px solid var(--line);backdrop-filter:blur(6px);font-size:12.5px;line-height:1.5}
+#objective b{display:block;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:4px}
+#toasts{position:absolute;left:50%;top:84px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{padding:.6em 1.1em;border-radius:9px;background:rgba(14,18,24,.94);border:1px solid var(--line);
+  font-size:13.5px;animation:tin .3s;box-shadow:0 8px 26px rgba(0,0,0,.5);max-width:70vw;text-align:center}
+.toast.good{border-color:#2f6b4b;color:#9df0bd}
+.toast.bad{border-color:#6b3230;color:#f0a49d}
+@keyframes tin{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}
+#lockmsg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;
+  pointer-events:auto;display:none}
+#lockmsg.on{display:block}
+#lockmsg .k{display:inline-block;padding:.9em 1.8em;border-radius:12px;background:rgba(10,13,17,.9);
+  border:1px solid var(--line);font-size:15px;letter-spacing:.08em;cursor:pointer;backdrop-filter:blur(8px)}
+#lockmsg .k:hover{border-color:var(--amber);color:var(--amber2)}
+#dmgflash{position:absolute;inset:0;background:radial-gradient(circle,transparent 55%,rgba(242,169,59,.35));opacity:0;transition:.4s}
+
+/* ---------- modal / puzzle ---------- */
+#modalWrap{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+  background:rgba(4,6,9,.72);backdrop-filter:blur(5px);padding:18px}
+#modalWrap.on{display:flex}
+#modal{width:min(560px,96vw);max-height:92vh;overflow:auto;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(180deg,#171d25,#10141a);box-shadow:0 30px 90px rgba(0,0,0,.7);animation:min .22s}
+@keyframes min{from{transform:scale(.94) translateY(10px);opacity:0}to{transform:none;opacity:1}}
+#modal .mh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+#modal .mh h3{font-size:15px;letter-spacing:.16em;text-transform:uppercase}
+#modal .mh .x{margin-left:auto;font-size:22px;line-height:1;color:var(--dim);padding:0 4px}
+#modal .mh .x:hover{color:var(--red)}
+#modal .mb{padding:20px}
+#modal .msub{color:var(--dim);font-size:13px;line-height:1.55;margin-bottom:16px}
+.noteBody{font-family:Georgia,serif;font-size:16.5px;line-height:1.75;color:#e6dcc6;white-space:pre-wrap;
+  background:linear-gradient(180deg,#241f17,#1b1712);border:1px solid #3a3226;border-radius:10px;padding:20px 22px}
+.noteBody em{color:var(--amber2);font-style:normal;font-weight:700;letter-spacing:.06em}
+.center{text-align:center}
+.mrow{display:flex;gap:10px;margin-top:18px}
+.mrow .btn{flex:1}
+
+/* keypad */
+.kpDisp{font-family:"SF Mono",Menlo,monospace;font-size:34px;letter-spacing:.34em;text-align:center;
+  padding:16px;border-radius:10px;background:#0a0e13;border:1px solid var(--line);color:var(--teal);
+  text-shadow:0 0 14px rgba(63,208,201,.55);min-height:70px;overflow:hidden}
+.kpDisp.err{color:var(--red);text-shadow:0 0 14px rgba(224,87,79,.6);animation:shake .35s}
+.kpDisp.ok{color:var(--green);text-shadow:0 0 14px rgba(95,208,138,.6)}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.kpGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:16px}
+.kpGrid button{padding:.85em 0;border-radius:10px;border:1px solid var(--line);background:#1b212a;
+  font-size:19px;font-weight:600;transition:.1s}
+.kpGrid button:hover{background:#252d38;border-color:var(--amber)}
+.kpGrid button:active{transform:scale(.94)}
+
+/* dials */
+.dials{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.dial{display:flex;flex-direction:column;align-items:center;gap:6px}
+.dial .win{width:64px;height:74px;border-radius:10px;background:#0a0e13;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:34px;color:var(--amber2)}
+.dial button{width:64px;padding:.3em 0;border-radius:7px;border:1px solid var(--line);background:#1b212a;font-size:13px}
+.dial button:hover{border-color:var(--amber)}
+
+/* generic tile grids */
+.tgrid{display:grid;gap:8px;justify-content:center;margin:0 auto}
+.tile{border-radius:9px;border:1px solid var(--line);background:#161c24;transition:.12s;
+  display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;position:relative}
+.tile:hover{border-color:var(--amber)}
+.tile.on{background:radial-gradient(circle at 50% 35%,#ffd88a,#f2a93b);border-color:#ffd88a;color:#231703;
+  box-shadow:0 0 16px rgba(242,169,59,.5)}
+.tile.lit{box-shadow:0 0 22px currentColor;filter:brightness(1.7)}
+.tile.fixed{opacity:.75;pointer-events:none;border-color:#3c4a5c}
+.legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:14px}
+
+/* letter lock */
+.letters{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.lcol{display:flex;flex-direction:column;align-items:center;gap:5px}
+.lcol .lch{width:48px;height:56px;border-radius:8px;background:#0a0e13;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:26px;color:var(--amber2)}
+.lcol button{width:48px;border-radius:6px;border:1px solid var(--line);background:#1b212a;font-size:11px;padding:.2em 0}
+
+/* scale / choice list */
+.choices{display:flex;flex-direction:column;gap:9px}
+.choice{display:flex;align-items:center;gap:11px;padding:.75em 1em;border-radius:10px;border:1px solid var(--line);
+  background:#161c24;text-align:left;font-size:14px;transition:.12s;width:100%}
+.choice:hover{border-color:var(--amber);background:#1c232c}
+.choice.sel{border-color:var(--teal);background:#12262a}
+.choice .w{margin-left:auto;color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+.readout{text-align:center;font-family:"SF Mono",Menlo,monospace;font-size:22px;color:var(--teal);
+  padding:12px;border-radius:10px;background:#0a0e13;border:1px solid var(--line);margin-bottom:14px}
+
+/* ---------- hints ---------- */
+#hintPanel{position:fixed;right:0;top:0;bottom:0;width:min(360px,90vw);z-index:35;
+  background:linear-gradient(180deg,#141920,#0e1218);border-left:1px solid var(--line);
+  transform:translateX(102%);transition:.28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;
+  box-shadow:-20px 0 60px rgba(0,0,0,.55)}
+#hintPanel.on{transform:none}
+#hintPanel .hh{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+#hintPanel .hh h3{font-size:14px;letter-spacing:.2em;text-transform:uppercase}
+#hintList{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:11px}
+.hint{border:1px solid var(--line);border-radius:11px;padding:13px 15px;background:#171d25;font-size:13.5px;line-height:1.6}
+.hint .lbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:5px;font-weight:700}
+.hint.locked{background:#12161c;color:var(--dim);display:flex;align-items:center;justify-content:space-between;gap:10px}
+#hintPanel .hf{padding:14px 18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);line-height:1.5}
+
+/* ---------- pause / win ---------- */
+.sheet{position:fixed;inset:0;z-index:38;display:none;align-items:center;justify-content:center;
+  background:rgba(4,6,9,.8);backdrop-filter:blur(6px);padding:20px}
+.sheet.on{display:flex}
+.card{width:min(460px,94vw);border-radius:18px;border:1px solid var(--line);padding:28px;text-align:center;
+  background:linear-gradient(180deg,#171d25,#10141a);box-shadow:0 30px 90px rgba(0,0,0,.7);animation:min .26s}
+.card h2{font-family:Georgia,serif;font-size:32px;font-weight:400;margin-bottom:6px}
+.card .st{color:var(--dim);font-size:13.5px;margin-bottom:20px;line-height:1.5}
+.stats{display:flex;flex-direction:column;gap:1px;border-radius:12px;overflow:hidden;border:1px solid var(--line);margin-bottom:18px}
+.stat{display:flex;justify-content:space-between;padding:.72em 1.05em;background:#141a21;font-size:13.5px}
+.stat span:first-child{color:var(--dim)}
+.stat b{font-variant-numeric:tabular-nums}
+.stat.tot{background:#1b1206;color:var(--amber2)}
+.starsBig{font-size:38px;letter-spacing:6px;margin:6px 0 16px;color:#2c333d}
+.starsBig i{font-style:normal;display:inline-block;animation:sp .45s backwards}
+.starsBig i.on{color:var(--amber);text-shadow:0 0 22px rgba(242,169,59,.6)}
+@keyframes sp{from{transform:scale(2.4) rotate(-30deg);opacity:0}to{transform:none;opacity:1}}
+.cardbtns{display:flex;flex-direction:column;gap:9px}
+.cardbtns .row{display:flex;gap:9px}
+.cardbtns .row .btn{flex:1}
+
+/* ---------- how to ---------- */
+.doc{max-width:720px;margin:0 auto;line-height:1.72;font-size:14.5px;color:#c8d2de}
+.doc h4{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--amber);margin:26px 0 8px}
+.doc h4:first-child{margin-top:0}
+.doc ul{padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.doc kbd{display:inline-block;padding:.1em .5em;border-radius:5px;background:#1d242e;border:1px solid var(--line);
+  font-family:inherit;font-size:12.5px;font-weight:700;color:var(--amber2)}
+
+/* ---------- touch ---------- */
+#touch{position:fixed;inset:0;z-index:12;display:none;pointer-events:none}
+#touch.on{display:block}
+#stick{position:absolute;left:26px;bottom:26px;width:118px;height:118px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.16);background:rgba(12,16,21,.4);pointer-events:auto}
+#stick i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px;border-radius:50%;
+  background:rgba(242,169,59,.55);border:2px solid rgba(255,255,255,.3)}
+#tapAct{position:absolute;right:26px;bottom:38px;width:88px;height:88px;border-radius:50%;
+  border:2px solid rgba(242,169,59,.5);background:rgba(242,169,59,.16);color:var(--amber2);
+  font-size:12px;letter-spacing:.1em;pointer-events:auto;display:flex;align-items:center;justify-content:center}
+#tapJmp{position:absolute;right:126px;bottom:38px;width:64px;height:64px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);font-size:11px;
+  pointer-events:auto;display:flex;align-items:center;justify-content:center}
+
+@media(max-width:640px){
+  .hdr{padding:12px 14px;gap:9px}.hdr h2{font-size:15px;letter-spacing:.1em}
+  .scroll{padding:16px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:9px}
+  .lv{min-height:92px;padding:10px}
+  .lv .n{font-size:21px}.lv .t{font-size:11px}
+  #objective{max-width:52vw;font-size:11.5px;padding:9px 11px}
+  #inv{max-width:44vw}
+  .avgrid{grid-template-columns:repeat(auto-fill,minmax(132px,1fr))}
+  .av canvas{width:78px;height:78px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="vignette"></div>
+
+<!-- ===== HUD ===== -->
+<div id="hud">
+  <div class="hudtop">
+    <div class="pill"><small>Level</small><span id="lvVal">1</span></div>
+    <div class="pill"><small>Time</small><span id="timeVal">0:00</span></div>
+    <div class="pill" id="parPill"><small>Par</small><span id="parVal">3:00</span></div>
+    <div class="spacer"></div>
+    <div class="coinchip"><i class="c"></i><span id="coinVal">0</span></div>
+    <button class="btn sm" id="hintBtn">Hints <span id="hintCount"></span></button>
+    <button class="btn sm" id="pauseBtn">Menu</button>
+  </div>
+  <div id="crosshair"><i></i><i></i><i></i><i></i></div>
+  <div id="prompt"></div>
+  <div id="inv"></div>
+  <div id="objective"><b>Objective</b><span id="objText"></span></div>
+  <div id="toasts"></div>
+  <div id="dmgflash"></div>
+  <div id="lockmsg"><div class="k" id="lockClick">Click to look around</div></div>
+</div>
+
+<div id="touch">
+  <div id="stick"><i></i></div>
+  <button id="tapAct">USE</button>
+  <button id="tapJmp">JUMP</button>
+</div>
+
+<!-- ===== TITLE ===== -->
+<div class="screen on" id="title">
+  <canvas id="titleArt"></canvas>
+  <div id="titleInner">
+    <div class="eyebrow">Thirty-Two Sealed Rooms</div>
+    <h1>THE LOCKED<br>ARCHIVE</h1>
+    <p class="sub">You wake in a room with no handle on the door. Somewhere in here is the way out — a code, a key, a mechanism. Search everything. Beat the clock. Collect coins and unlock a new avatar.</p>
+    <div class="menu">
+      <button class="btn primary" id="btnPlay">Continue</button>
+      <button class="btn" id="btnLevels">Select Level</button>
+      <button class="btn" id="btnAvatars">Avatars</button>
+      <button class="btn ghost" id="btnHow">How to Play</button>
+    </div>
+    <div class="progbar"><i id="titleProg"></i></div>
+    <div class="eyebrow" id="titleProgTxt" style="letter-spacing:.2em;margin-left:.2em;margin-top:8px">0 / 32 ROOMS ESCAPED</div>
+  </div>
+  <div class="foot">Made for the browser · WASD + Mouse · your progress saves automatically</div>
+</div>
+
+<!-- ===== LEVEL SELECT ===== -->
+<div class="screen" id="levels">
+  <div class="hdr">
+    <button class="btn sm" data-back>‹ Back</button>
+    <h2>Select a Room</h2>
+    <div class="spacer"></div>
+    <div class="coinchip"><i class="c"></i><span class="coinMirror">0</span></div>
+  </div>
+  <div class="scroll"><div class="acts" id="actList"></div></div>
+</div>
+
+<!-- ===== AVATARS ===== -->
+<div class="screen" id="avatars">
+  <div class="hdr">
+    <button class="btn sm" data-back>‹ Back</button>
+    <h2>Avatars</h2>
+    <div class="spacer"></div>
+    <div class="coinchip"><i class="c"></i><span class="coinMirror">0</span></div>
+  </div>
+  <div class="scroll"><div class="avgrid" id="avList"></div></div>
+</div>
+
+<!-- ===== HOW TO ===== -->
+<div class="screen" id="how">
+  <div class="hdr">
+    <button class="btn sm" data-back>‹ Back</button>
+    <h2>How to Play</h2>
+  </div>
+  <div class="scroll"><div class="doc">
+    <h4>Controls</h4>
+    <ul>
+      <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> — walk · <kbd>Shift</kbd> — sprint · <kbd>Space</kbd> — jump</li>
+      <li><b>Mouse</b> — look around (click the room once to capture the cursor)</li>
+      <li><kbd>E</kbd> or <b>Left click</b> — interact with whatever the crosshair is on</li>
+      <li><kbd>H</kbd> — hints · <kbd>Esc</kbd> — pause menu · <kbd>R</kbd> — restart the room</li>
+      <li>On a phone: drag the left stick to walk, drag anywhere on the right to look, tap <b>USE</b> to interact.</li>
+    </ul>
+    <h4>The loop</h4>
+    <ul>
+      <li>Every room is sealed. Find the mechanism that opens the door.</li>
+      <li>Notes, plaques and scratched walls hold the codes. <b>Read everything.</b></li>
+      <li>The crosshair flares gold when something is interactive.</li>
+      <li>The objective box in the corner tells you what the door is still waiting on.</li>
+    </ul>
+    <h4>Time &amp; stars</h4>
+    <ul>
+      <li>Each room has a <b>par time</b>. Beat it for a big coin bonus.</li>
+      <li>★★★ — under par, no hints. ★★ — under 1.5× par. ★ — escaped at all.</li>
+      <li>The timer is never a fail state. You can take as long as you want; you just earn less.</li>
+    </ul>
+    <h4>Hints &amp; coins</h4>
+    <ul>
+      <li>Three hints per room, revealed one at a time and each costs <b>5 coins</b> off your reward.</li>
+      <li>Coins buy avatars. Escaping a room the first time always pays the most.</li>
+      <li>Replaying a cleared room pays a smaller amount — enough to grind for that last skin.</li>
+    </ul>
+  </div></div>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div id="modalWrap"><div id="modal">
+  <div class="mh"><h3 id="mTitle"></h3><button class="x" id="mClose">×</button></div>
+  <div class="mb" id="mBody"></div>
+</div></div>
+
+<!-- ===== HINT PANEL ===== -->
+<div id="hintPanel">
+  <div class="hh"><h3>Hints</h3><div class="spacer"></div><button class="btn sm" id="hintClose">Close</button></div>
+  <div id="hintList"></div>
+  <div class="hf">Each hint you open costs 5 coins from this room's reward, and gives up your 3-star rating.</div>
+</div>
+
+<!-- ===== PAUSE ===== -->
+<div class="sheet" id="pause"><div class="card">
+  <h2>Paused</h2>
+  <div class="st" id="pauseSub">Room 1 — The Cold Room</div>
+  <div class="cardbtns">
+    <button class="btn primary" id="pResume">Resume</button>
+    <div class="row">
+      <button class="btn" id="pRestart">Restart Room</button>
+      <button class="btn" id="pHints">Hints</button>
+    </div>
+    <button class="btn ghost" id="pQuit">Leave to Menu</button>
+  </div>
+</div></div>
+
+<!-- ===== WIN ===== -->
+<div class="sheet" id="win"><div class="card">
+  <h2 id="winTitle">Escaped</h2>
+  <div class="st" id="winSub"></div>
+  <div class="starsBig" id="winStars"><i>★</i><i>★</i><i>★</i></div>
+  <div class="stats" id="winStats"></div>
+  <div class="cardbtns">
+    <button class="btn primary" id="wNext">Next Room ›</button>
+    <div class="row">
+      <button class="btn" id="wReplay">Replay</button>
+      <button class="btn" id="wMenu">Level Select</button>
+    </div>
+  </div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   THE LOCKED ARCHIVE — a 3D escape room
+   ============================================================ */
+"use strict";
+const $  = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> [...(r||document).querySelectorAll(s)];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const TAU=Math.PI*2;
+const fmtTime=s=>{s=Math.max(0,Math.floor(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
+function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function mulberry(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ---------- audio (tiny synth, no assets) ---------- */
+const Audio_={ctx:null,on:true,
+  init(){ if(!this.ctx){ try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ this.on=false; } }
+          if(this.ctx&&this.ctx.state==="suspended")this.ctx.resume(); },
+  beep(f=440,d=.1,type="sine",vol=.16,slide=0){
+    if(!this.on)return; this.init(); if(!this.ctx)return;
+    const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,t);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+d);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);
+    g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+d+.02);
+  },
+  click(){this.beep(620,.05,"square",.08);},
+  ok(){this.beep(540,.09,"triangle",.14);setTimeout(()=>this.beep(760,.13,"triangle",.14),80);},
+  no(){this.beep(190,.2,"sawtooth",.11,-70);},
+  pick(){this.beep(880,.07,"triangle",.13);setTimeout(()=>this.beep(1180,.11,"triangle",.11),60);},
+  unlock(){[400,520,660,880].forEach((f,i)=>setTimeout(()=>this.beep(f,.2,"triangle",.13),i*90));},
+  win(){[523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>this.beep(f,.32,"triangle",.15),i*110));},
+  coin(){this.beep(1100,.06,"square",.1);setTimeout(()=>this.beep(1560,.14,"square",.09),55);},
+  thud(){this.beep(90,.14,"sine",.16,-40);}
+};
+
+/* ============================================================
+   SAVE
+   ============================================================ */
+const SAVE_KEY="lockedArchive.v1";
+const Save={
+  d:{coins:0,unlocked:1,best:{},stars:{},avatar:"rookie",owned:["rookie"],seen:false,plays:0},
+  load(){ try{ const r=localStorage.getItem(SAVE_KEY); if(r)Object.assign(this.d,JSON.parse(r)); }catch(e){}
+          if(!this.d.owned.includes("rookie"))this.d.owned.push("rookie"); return this.d; },
+  save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(this.d)); }catch(e){} },
+  addCoins(n){ this.d.coins=Math.max(0,this.d.coins+n); this.save(); UI.syncCoins(); },
+  reset(){ this.d={coins:0,unlocked:1,best:{},stars:{},avatar:"rookie",owned:["rookie"],seen:false,plays:0}; this.save(); }
+};
+
+/* ============================================================
+   AVATARS  — cosmetic identity: suit colour, visor, trim, glove shape
+   ============================================================ */
+const AVATARS=[
+  {id:"rookie", name:"The Rookie",  cost:0,   ds:"Standard-issue jumpsuit. Everyone starts here.",
+    suit:0x4a5568, trim:0xf2a93b, visor:0x8fd6ff, skin:0xd9a97f, glow:0},
+  {id:"custodian",name:"Custodian", cost:60,  ds:"Keeper of the lower archive. Smells faintly of dust.",
+    suit:0x3d4f3a, trim:0xc9b072, visor:0xbfe6b0, skin:0xc98f63, glow:0},
+  {id:"locksmith",name:"Locksmith", cost:90,  ds:"Brass fittings, oil-stained cuffs, endless patience.",
+    suit:0x5a3f2b, trim:0xd9a441, visor:0xffd79a, skin:0xe0b48c, glow:0},
+  {id:"inspector",name:"Inspector", cost:120, ds:"Long coat. Asks the questions nobody wants asked.",
+    suit:0x232b36, trim:0x9aa7b8, visor:0xd6e4f5, skin:0xcf9e78, glow:0},
+  {id:"diver",    name:"Deep Diver",cost:160, ds:"Pressure-rated to a depth this building shouldn't have.",
+    suit:0x123b52, trim:0x39c5d6, visor:0x9ff0ff, skin:0xb98a68, glow:0x0d4a5e},
+  {id:"technician",name:"Technician",cost:200,ds:"Static-safe weave. Reads schematics for fun.",
+    suit:0x2c3f4a, trim:0x5fd08a, visor:0xa8ffd0, skin:0xdda87c, glow:0x114d2e},
+  {id:"cartographer",name:"Cartographer",cost:250,ds:"Has mapped every room but this one.",
+    suit:0x6b4a2f, trim:0xf0e0b8, visor:0xffeec2, skin:0xa87450, glow:0},
+  {id:"nightwatch",name:"Nightwatch",cost:310,ds:"Moves quietly. Prefers the dark. Never startled.",
+    suit:0x171a21, trim:0x6f7b8f, visor:0x5a6a80, skin:0x8a5f42, glow:0},
+  {id:"alchemist",name:"Alchemist", cost:380, ds:"Robes stained by nine different colours of smoke.",
+    suit:0x4b2a5e, trim:0xd8a3ff, visor:0xefd0ff, skin:0xe8c6a0, glow:0x3a1150},
+  {id:"warden",   name:"The Warden",cost:460, ds:"Carries every key and uses none of them.",
+    suit:0x2a2016, trim:0xffcb5c, visor:0xffe6a8, skin:0xb07b52, glow:0x4a2f06},
+  {id:"aurora",   name:"Aurora",    cost:560, ds:"Suit woven from cold light. Hums when you stand still.",
+    suit:0x123049, trim:0x7cf5d0, visor:0xd4fff4, skin:0xf0cba8, glow:0x1a6b7a},
+  {id:"ember",    name:"Ember",     cost:680, ds:"Runs hot. Melts frost off the vault doors.",
+    suit:0x5a1a12, trim:0xff8a3d, visor:0xffc48a, skin:0xd49a6a, glow:0x8a2a08},
+  {id:"cipher",   name:"Cipher",    cost:820, ds:"Nobody has confirmed there's a person inside.",
+    suit:0x0f1418, trim:0x3fd0c9, visor:0x0a0d10, skin:0x2a3038, glow:0x0a5f5a},
+  {id:"gilded",   name:"The Gilded", cost:1000,ds:"Solid archive-gold. Awarded to those who leave every room.",
+    suit:0x6b4c10, trim:0xffe08a, visor:0xfff3cc, skin:0xe8c98f, glow:0x9a6c10},
+  {id:"phantom",  name:"Phantom",   cost:1250,ds:"You will not see this one on the security tapes.",
+    suit:0x1a1730, trim:0xa98bff, visor:0xd9ccff, skin:0x6a5f8a, glow:0x2f1f6b}
+];
+const AV=id=>AVATARS.find(a=>a.id===id)||AVATARS[0];
+const hex=n=>"#"+n.toString(16).padStart(6,"0");
+
+/* 2D portrait for the avatar picker */
+function drawAvatar(cv,a,t){
+  const c=cv.getContext("2d"),W=cv.width,H=cv.height;
+  c.clearRect(0,0,W,H); const s=W/120;
+  c.save();c.translate(0,Math.sin(t/700)*1.6*s);
+  if(a.glow){const g=c.createRadialGradient(60*s,62*s,4*s,60*s,62*s,54*s);
+    g.addColorStop(0,hex(a.glow)+"cc");g.addColorStop(1,"transparent");c.fillStyle=g;c.fillRect(0,0,W,H);}
+  const P=(x,y,w,h,f,r)=>{c.fillStyle=f;c.beginPath();c.roundRect(x*s,y*s,w*s,h*s,(r||3)*s);c.fill();};
+  P(38,72,44,36,hex(a.suit),9);                       // torso
+  P(30,74,12,30,hex(a.suit),6); P(78,74,12,30,hex(a.suit),6); // arms
+  P(43,100,14,10,hex(a.trim),3); P(63,100,14,10,hex(a.trim),3); // gloves
+  P(52,64,16,12,hex(a.suit),4);                       // neck
+  P(36,26,48,44,hex(a.suit),15);                      // helmet
+  c.save();c.beginPath();c.roundRect(42*s,38*s,36*s,22*s,9*s);c.clip();
+  const vg=c.createLinearGradient(42*s,38*s,78*s,60*s);
+  vg.addColorStop(0,hex(a.visor));vg.addColorStop(.55,hex(a.skin));vg.addColorStop(1,hex(a.visor));
+  c.fillStyle=vg;c.fillRect(42*s,38*s,36*s,22*s);
+  c.fillStyle="rgba(255,255,255,.28)";c.beginPath();c.moveTo(44*s,60*s);c.lineTo(60*s,38*s);c.lineTo(68*s,38*s);c.lineTo(52*s,60*s);c.fill();
+  c.restore();
+  c.strokeStyle=hex(a.trim);c.lineWidth=2.2*s;
+  c.beginPath();c.roundRect(42*s,38*s,36*s,22*s,9*s);c.stroke();
+  P(56,22,8,8,hex(a.trim),3);                          // crest
+  P(38,84,44,4,hex(a.trim),2);                         // belt
+  c.restore();
+}
+
+/* ============================================================
+   PROCEDURAL TEXTURES
+   ============================================================ */
+const TexCache={};
+function cvs(n){const c=document.createElement("canvas");c.width=c.height=n;return c;}
+function noiseOn(ctx,n,amt,alpha){
+  const d=ctx.getImageData(0,0,n,n),p=d.data;
+  for(let i=0;i<p.length;i+=4){const v=(Math.random()-.5)*amt;
+    p[i]=clamp(p[i]+v,0,255);p[i+1]=clamp(p[i+1]+v,0,255);p[i+2]=clamp(p[i+2]+v,0,255);}
+  ctx.putImageData(d,0,0);
+}
+function makeTex(kind,base,seed){
+  const key=kind+base+(seed||0); if(TexCache[key])return TexCache[key];
+  const N=256,c=cvs(N),x=c.getContext("2d"),rnd=mulberry((seed||1)*7919+kind.length*131);
+  const col=hex(base);
+  x.fillStyle=col;x.fillRect(0,0,N,N);
+  const shade=(a)=>"rgba(0,0,0,"+a+")", light=(a)=>"rgba(255,255,255,"+a+")";
+  if(kind==="stone"){
+    for(let i=0;i<150;i++){const r=5+rnd()*16,px=rnd()*N,py=rnd()*N;
+      x.fillStyle=rnd()<.5?shade(.03+rnd()*.07):light(.015+rnd()*.04);
+      x.beginPath();x.ellipse(px,py,r,r*(.5+rnd()*.7),rnd()*3,0,TAU);x.fill();}
+    x.strokeStyle=shade(.55);x.lineWidth=4;
+    for(let r=0;r<4;r++){const y=r*64;x.beginPath();x.moveTo(0,y);x.lineTo(N,y);x.stroke();
+      for(let k=0;k<3;k++){const bx=((r%2)*42+k*85)%N;x.beginPath();x.moveTo(bx,y);x.lineTo(bx,y+64);x.stroke();}}
+  } else if(kind==="brick"){
+    const bh=32,bw=64;
+    for(let r=0;r<N/bh;r++)for(let k=-1;k<N/bw+1;k++){
+      const ox=(r%2)*bw/2, bx=k*bw+ox, by=r*bh;
+      x.fillStyle="rgba("+(90+rnd()*46|0)+","+(46+rnd()*26|0)+","+(38+rnd()*20|0)+",1)";
+      x.fillRect(bx+2,by+2,bw-4,bh-4);
+      x.fillStyle=light(.05);x.fillRect(bx+2,by+2,bw-4,3);}
+    x.fillStyle=shade(.35);
+  } else if(kind==="wood"){
+    for(let i=0;i<N;i+=1){const w=.5+Math.sin(i*.09+rnd()*.5)*.5;
+      x.fillStyle=rnd()<.5?shade(.02+w*.09):light(.01+w*.05);x.fillRect(0,i,N,1);}
+    x.strokeStyle=shade(.34);x.lineWidth=3;
+    for(let k=0;k<5;k++){const px=k*(N/5);x.beginPath();x.moveTo(px,0);x.lineTo(px,N);x.stroke();}
+    for(let i=0;i<10;i++){const px=rnd()*N,py=rnd()*N;x.strokeStyle=shade(.18);x.lineWidth=1.6;
+      for(let r=3;r<15;r+=3){x.beginPath();x.ellipse(px,py,r,r*.5,0,0,TAU);x.stroke();}}
+  } else if(kind==="tile"){
+    const g=N/4;
+    for(let a=0;a<4;a++)for(let b=0;b<4;b++){
+      x.fillStyle=((a+b)%2?light(.045):shade(.055));x.fillRect(a*g+1.5,b*g+1.5,g-3,g-3);
+      x.fillStyle=light(.05);x.fillRect(a*g+1.5,b*g+1.5,g-3,2);}
+    x.strokeStyle=shade(.4);x.lineWidth=3;
+    for(let a=0;a<=4;a++){x.beginPath();x.moveTo(a*g,0);x.lineTo(a*g,N);x.moveTo(0,a*g);x.lineTo(N,a*g);x.stroke();}
+  } else if(kind==="metal"){
+    for(let i=0;i<N;i++){x.fillStyle=rnd()<.5?shade(rnd()*.09):light(rnd()*.07);x.fillRect(i,0,1,N);}
+    x.strokeStyle=shade(.3);x.lineWidth=2;
+    for(let a=0;a<=2;a++){x.beginPath();x.moveTo(a*128,0);x.lineTo(a*128,N);x.moveTo(0,a*128);x.lineTo(N,a*128);x.stroke();}
+    x.fillStyle=shade(.42);
+    [[16,16],[240,16],[16,240],[240,240],[128,16],[128,240],[16,128],[240,128]].forEach(p=>{
+      x.beginPath();x.arc(p[0],p[1],5,0,TAU);x.fill();});
+  } else if(kind==="marble"){
+    for(let i=0;i<26;i++){x.strokeStyle=rnd()<.5?light(.06+rnd()*.14):shade(.05+rnd()*.12);
+      x.lineWidth=.6+rnd()*3.4;x.beginPath();
+      let px=rnd()*N,py=rnd()*N;x.moveTo(px,py);
+      for(let k=0;k<10;k++){px+=(rnd()-.5)*70;py+=(rnd()-.5)*70;x.lineTo(px,py);}x.stroke();}
+  } else if(kind==="concrete"){
+    for(let i=0;i<600;i++){x.fillStyle=rnd()<.5?shade(rnd()*.1):light(rnd()*.06);
+      x.fillRect(rnd()*N,rnd()*N,1+rnd()*4,1+rnd()*4);}
+  } else if(kind==="grate"){
+    x.fillStyle=shade(.55);
+    for(let a=0;a<N;a+=32){x.fillRect(a,0,20,N);}
+    x.fillStyle=col;for(let a=0;a<N;a+=32)x.fillRect(a+3,0,14,N);
+    x.fillStyle=shade(.4);for(let b=0;b<N;b+=32)x.fillRect(0,b,N,6);
+  } else if(kind==="rune"){
+    for(let i=0;i<70;i++){const px=rnd()*N,py=rnd()*N,r=8+rnd()*16;
+      x.strokeStyle=light(.05+rnd()*.09);x.lineWidth=1+rnd()*2;
+      x.beginPath();x.moveTo(px,py);x.lineTo(px+(rnd()-.5)*r*2,py+(rnd()-.5)*r*2);
+      x.lineTo(px+(rnd()-.5)*r*2,py+(rnd()-.5)*r*2);x.stroke();}
+    x.strokeStyle=shade(.3);x.lineWidth=2;
+    for(let a=0;a<=2;a++){x.beginPath();x.moveTo(a*128,0);x.lineTo(a*128,N);x.moveTo(0,a*128);x.lineTo(N,a*128);x.stroke();}
+  } else if(kind==="ice"){
+    for(let i=0;i<40;i++){x.strokeStyle=light(.06+rnd()*.2);x.lineWidth=.5+rnd()*2.2;
+      let px=rnd()*N,py=rnd()*N;x.beginPath();x.moveTo(px,py);
+      for(let k=0;k<5;k++){px+=(rnd()-.5)*90;py+=(rnd()-.5)*90;x.lineTo(px,py);}x.stroke();}
+  }
+  noiseOn(x,N,16);
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4;
+  TexCache[key]=t;return t;
+}
+
+/* ============================================================
+   THEMES
+   ============================================================ */
+const THEMES={
+  cellar:{wall:0x6a6258,wt:"stone",floor:0x4b4741,ft:"stone",ceil:0x33302c,
+    fog:0x0d0f12,amb:0x33383f,ai:.42,lamp:0xffc27a,li:1.05,accent:0xf2a93b},
+  brickwork:{wall:0x7a4a3c,wt:"brick",floor:0x4a423a,ft:"stone",ceil:0x2e2a26,
+    fog:0x120e0c,amb:0x3a322c,ai:.42,lamp:0xffb266,li:1.0,accent:0xff9d4d},
+  manor:{wall:0x7a5c3c,wt:"wood",floor:0x5c4227,ft:"wood",ceil:0x3a2c1c,
+    fog:0x120e09,amb:0x413528,ai:.46,lamp:0xffd9a0,li:1.1,accent:0xe8c07a},
+  library:{wall:0x6b503a,wt:"wood",floor:0x4d3a2a,ft:"wood",ceil:0x33261a,
+    fog:0x0f0c08,amb:0x3b3126,ai:.44,lamp:0xffcf8f,li:1.0,accent:0xd8b06a},
+  lab:{wall:0x8f9aa2,wt:"tile",floor:0x6d767d,ft:"tile",ceil:0x9aa4ab,
+    fog:0x121619,amb:0x55646f,ai:.5,lamp:0xdcecf7,li:1.0,accent:0x3fd0c9},
+  foundry:{wall:0x6d6a66,wt:"metal",floor:0x4e4b47,ft:"grate",ceil:0x2f2d2b,
+    fog:0x140f0c,amb:0x4a3a30,ai:.4,lamp:0xff8a3d,li:1.2,accent:0xff8a3d},
+  vault:{wall:0x71767d,wt:"metal",floor:0x4d525a,ft:"metal",ceil:0x33373c,
+    fog:0x0c0e11,amb:0x39404a,ai:.44,lamp:0xcadcf5,li:1.0,accent:0x9ec5ff},
+  temple:{wall:0x8b8069,wt:"marble",floor:0x6d6352,ft:"marble",ceil:0x4a4438,
+    fog:0x0d0b08,amb:0x3d382c,ai:.44,lamp:0xffd090,li:1.0,accent:0xffcb5c},
+  crypt:{wall:0x565b52,wt:"rune",floor:0x3d413a,ft:"stone",ceil:0x282b26,
+    fog:0x0a0c0a,amb:0x2e3a33,ai:.36,lamp:0x9fe8c0,li:.9,accent:0x5fd08a},
+  cryo:{wall:0x6b8ea6,wt:"ice",floor:0x4f7085,ft:"ice",ceil:0x7ea1b5,
+    fog:0x0a121b,amb:0x426a80,ai:.45,lamp:0xbfe6f7,li:.95,accent:0x8fd6ff},
+  archive:{wall:0x5a5f68,wt:"concrete",floor:0x44484f,ft:"concrete",ceil:0x2c2f34,
+    fog:0x0b0d10,amb:0x3a4049,ai:.44,lamp:0xffe0b0,li:1.0,accent:0xf2a93b},
+  observatory:{wall:0x3a3f52,wt:"marble",floor:0x2d3142,ft:"marble",ceil:0x1e2130,
+    fog:0x070812,amb:0x2f3550,ai:.42,lamp:0xb9c8ff,li:.95,accent:0xa98bff},
+  void:{wall:0x1d1f2a,wt:"rune",floor:0x171922,ft:"metal",ceil:0x121420,
+    fog:0x05060a,amb:0x262b40,ai:.38,lamp:0xa98bff,li:1.1,accent:0xa98bff}
+};
+
+/* ============================================================
+   LEVELS
+   placement:  {w:'n'|'s'|'e'|'w', u:0..1, y:height}  on a wall
+               {f:[x,z], ry:rad}                      on the floor
+   req: flags needed before it will work   set: flags granted on solve
+   hide: flag — object stays invisible until that flag is set
+   ============================================================ */
+const ACTS=[
+ {name:"Act I — The Cellar",      from:1,  to:8 },
+ {name:"Act II — The Manor",      from:9,  to:16},
+ {name:"Act III — The Laboratory",from:17, to:24},
+ {name:"Act IV — The Vault",      from:25, to:32}
+];
+
+const LEVELS=[
+/* ---------------- ACT I : THE CELLAR ---------------- */
+{name:"The Cold Room", th:"cellar", sz:[9,9], par:75, door:{w:"n",u:.5,req:["exit"]},
+ obj:"The door needs its iron key.",
+ hints:["The room is small. Walk the walls, and look down as well as up.",
+        "Something is lying on the floor beneath the hanging lamp.",
+        "The iron key is on the floor under the lamp in the far corner. Look at it and press E."],
+ objs:[
+  {t:"note",w:"s",u:.5,y:1.5,name:"Scratched Plaque",txt:"So it begins.\n\nThe key sleeps where the light falls.\n\nNothing here is a trick yet."},
+  {t:"key",f:[2.6,-2.6],name:"Iron Key",col:0x9aa3aa,set:["exit"]},
+  {t:"prop",kind:"lamp",f:[2.6,-2.6]},
+  {t:"prop",kind:"crate",f:[-2.8,2.4],ry:.4},{t:"prop",kind:"barrel",f:[-3,-2.2]}
+ ]},
+
+{name:"Three Digits", th:"cellar", sz:[10,9], par:105, door:{w:"n",u:.5,req:["exit"]},
+ obj:"Enter the code on the door panel.",
+ hints:["There is a written page on one of the walls. It is not decoration.",
+        "The ledger counts things in words. Read the counts in the order they are listed.",
+        "The code is 4 7 2. Punch it into the keypad beside the door."],
+ objs:[
+  {t:"note",w:"e",u:.4,y:1.5,name:"Ledger Page",txt:"INVENTORY, LOWER STORE\n\nfour barrels of salt\nseven crates of tallow\ntwo lamps, unlit\n\nRead it in that order and the door will believe you."},
+  {t:"keypad",w:"n",u:.74,y:1.35,code:"472",set:["exit"],sub:"Three digits. The panel is warm."},
+  {t:"prop",kind:"barrel",f:[-3.4,-2.4]},{t:"prop",kind:"barrel",f:[-3.4,-1.2]},
+  {t:"prop",kind:"crate",f:[3.2,2.2],ry:.2},{t:"prop",kind:"crate",f:[2.2,2.6],ry:-.5},
+  {t:"prop",kind:"shelf",w:"w",u:.5}
+ ]},
+
+{name:"Four Levers", th:"brickwork", sz:[10,10], par:130, door:{w:"e",u:.5,req:["exit"]},
+ obj:"Set the four levers correctly.",
+ hints:["There is a rhyme on the wall opposite the levers.",
+        "Read the rhyme left to right: the outer two point one way, the inner two the other.",
+        "Down, up, up, down — levers 1 and 4 down, levers 2 and 3 up."],
+ objs:[
+  {t:"note",w:"s",u:.5,y:1.5,name:"Rhyme, painted",txt:"The ends bow low,\nthe middle stands.\nFour hands agree\nand out you go."},
+  {t:"levers",w:"n",u:.5,n:4,target:[0,1,1,0],set:["exit"]},
+  {t:"prop",kind:"pillar",f:[-3.6,-3.4]},{t:"prop",kind:"pillar",f:[-3.6,3.4]},
+  {t:"prop",kind:"barrel",f:[3.2,-3.2]}
+ ]},
+
+{name:"Scattered Light", th:"cellar", sz:[12,10], par:145, door:{w:"s",u:.5,req:["exit"]},
+ obj:"Collect all four shards.",
+ hints:["Four shards, and only one of them is at eye level on the floor.",
+        "Check on top of the crate, on the shelf, and low behind the pillar.",
+        "Shards: floor centre-left, on top of the crate, tucked behind the west pillar, and up on the east shelf."],
+ objs:[
+  {t:"note",w:"n",u:.5,y:1.5,name:"Chalk Note",txt:"Four pieces of the same lamp.\nThe door counts them;\nit does not care in what order."},
+  {t:"gems",set:["exit"],pts:[[-3.6,.6,.5],[1.4,1.25,-3.2],[-5.1,.6,-3.6],[5.6,2.0,2.5]]},
+  {t:"prop",kind:"crate",f:[1.4,-3.2]},{t:"prop",kind:"pillar",f:[-4.6,-3.6]},
+  {t:"prop",kind:"shelf",w:"e",u:.75},{t:"prop",kind:"barrel",f:[4.4,-1.4]}
+ ]},
+
+{name:"The Locked Chest", th:"brickwork", sz:[11,10], par:170, door:{w:"n",u:.5,req:["exit"]},
+ obj:"The chest holds the key. The chest wants a code.",
+ hints:["Two things, in order: open the chest, then open the door.",
+        "The tally sheet gives you a subtraction, then tells you to count something in the room.",
+        "90 − 9 = 81, and there are 3 barrels. Code 813. Then take the key from the chest."],
+ objs:[
+  {t:"note",w:"w",u:.35,y:1.5,name:"Tally Sheet",txt:"ninety, less nine.\nthen count the barrels in this room.\n\nthree digits. no spaces."},
+  {t:"keypad",w:"w",u:.72,y:1.35,code:"813",set:["chest"],sub:"A small brass panel wired down into the floor."},
+  {t:"container",kind:"chest",f:[2.4,2.6],ry:-.3,req:["chest"],set:["exit"],
+   lock:"The lid will not lift. A brass panel on the west wall is wired to it.",
+   found:"Inside, on folded velvet: a heavy iron key."},
+  {t:"prop",kind:"barrel",f:[-4,-2.6]},{t:"prop",kind:"barrel",f:[-4,-1.4]},{t:"prop",kind:"barrel",f:[-4,-.2]},
+  {t:"prop",kind:"crate",f:[4,-3]},{t:"prop",kind:"table",f:[0,-2.8]}
+ ]},
+
+{name:"Order of Pressing", th:"cellar", sz:[11,11], par:180, door:{w:"e",u:.5,req:["exit"]},
+ obj:"Press the five buttons in the right order.",
+ hints:["The order is written on the west wall, under the words.",
+        "The buttons are numbered. The line gives you those numbers directly.",
+        "The order is 3 · 1 · 5 · 2 · 4. Get it wrong and the row resets."],
+ objs:[
+  {t:"note",w:"w",u:.5,y:1.5,name:"Charcoal Line",txt:"THE   A   BLOCK   OF   IRON\n 3    1     5      2     4\n\nThe numbers under the words\nare the order of the buttons."},
+  {t:"btnseq",kind:"button",w:"n",u:.5,n:5,order:[3,1,5,2,4],set:["exit"]},
+  {t:"prop",kind:"pillar",f:[-3.8,3.6]},{t:"prop",kind:"crate",f:[3.6,3.4],ry:.3},
+  {t:"prop",kind:"barrel",f:[-4.2,-3.4]}
+ ]},
+
+{name:"Lights Out", th:"brickwork", sz:[10,10], par:210, door:{w:"s",u:.5,req:["exit"]},
+ obj:"Light every cell on the panel.",
+ hints:["Pressing a cell flips it and its four neighbours — not the diagonals.",
+        "The four cells you need are the ones that are currently dark.",
+        "Press the four edge cells: top-middle, left-middle, right-middle, bottom-middle."],
+ objs:[
+  {t:"note",w:"e",u:.4,y:1.5,name:"Instruction Card",txt:"A touch spreads.\nWhat you press, and everything it touches, changes.\n\nAll nine must burn."},
+  {t:"lights",w:"n",u:.5,y:1.4,n:3,scr:[1,3,5,7],set:["exit"],sub:"Nine glass cells in an iron frame."},
+  {t:"prop",kind:"pillar",f:[3.6,-3.6]},{t:"prop",kind:"pillar",f:[-3.6,-3.6]},
+  {t:"prop",kind:"crate",f:[3.4,3.2]}
+ ]},
+
+{name:"The Stair Below", th:"cellar", sz:[12,12], par:260, door:{w:"n",u:.5,req:["sealA","sealB"]},
+ obj:"Two seals hold the door. Release both.",
+ hints:["Two independent mechanisms. The portrait on the east wall is hiding one of them.",
+        "The two torn notes make one four-digit number. The floor stones are numbered — the flagstone says which order.",
+        "Safe code 2140. Stones: 3, then 1, then 2."],
+ objs:[
+  {t:"note",w:"w",u:.25,y:1.5,name:"Torn Note (top)",txt:"…the year they sealed it was\n\ntwenty-one hundred…"},
+  {t:"note",w:"w",u:.62,y:1.5,name:"Torn Note (bottom)",txt:"…and forty more days\nbefore anyone noticed.\n\nfour digits, in the order you read them."},
+  {t:"painting",w:"e",u:.4,y:1.55,set:["safeSeen"],art:"portrait",
+   reveal:"The frame swings aside. There is a safe set into the brick."},
+  {t:"keypad",w:"e",u:.4,y:1.5,code:"2140",req:["safeSeen"],hide:"safeSeen",set:["sealA"],sub:"The safe behind the portrait."},
+  {t:"note",f:[0,-.9],y:.06,name:"Carved Flagstone",txt:"The stones are numbered.\n\nTHIRD, then FIRST, then SECOND.\n\nOut of order and they sink again."},
+  {t:"plates",set:["sealB"],pts:[[-3.4,3.6],[0,1.2],[3.4,-3.2]],order:[2,0,1]},
+  {t:"prop",kind:"pillar",f:[-4.4,-4.2]},{t:"prop",kind:"pillar",f:[4.4,4.2]},
+  {t:"prop",kind:"barrel",f:[-4.6,1.8]},{t:"prop",kind:"crate",f:[4.4,-1.6]}
+ ]},
+
+/* ---------------- ACT II : THE MANOR ---------------- */
+{name:"The Study", th:"manor", sz:[12,11], par:190, door:{w:"n",u:.5,req:["exit"]},
+ obj:"Set the four symbol dials.",
+ hints:["The bookplate names four things, in order. Each has a mark on the rings.",
+        "Sun, moon, star, key — exactly the order the bookplate reads.",
+        "Turn the dials to ☀ ☾ ✦ ⚷ , left to right."],
+ objs:[
+  {t:"note",w:"s",u:.35,y:1.5,name:"Bookplate",txt:"Ex libris.\n\nBy sun I read,\nby moon I write,\nby star I sleep,\nby key I leave."},
+  {t:"dials",w:"e",u:.5,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[0,1,2,3],set:["exit"],
+   sub:"Four brass rings, each cut with six marks."},
+  {t:"prop",kind:"desk",f:[-2.4,2.4],ry:.2},{t:"prop",kind:"chair",f:[-2.4,1.1]},
+  {t:"prop",kind:"bookcase",w:"w",u:.35},{t:"prop",kind:"bookcase",w:"w",u:.7},
+  {t:"prop",kind:"lamp",f:[-2.4,2.4]}
+ ]},
+
+{name:"Simon's Parlour", th:"library", sz:[11,11], par:200, door:{w:"e",u:.5,req:["exit"]},
+ obj:"Repeat the colour sequence.",
+ hints:["Interact with the case to start it. Watch the whole run before you touch anything.",
+        "It grows by one colour each round. Four rounds and it opens.",
+        "If you lose the thread, close it and start again — it always replays from the beginning."],
+ objs:[
+  {t:"note",w:"n",u:.5,y:1.5,name:"Card on a String",txt:"It will show you.\nThen it will ask.\n\nFour times."},
+  {t:"simon",w:"s",u:.5,y:1.4,len:4,set:["exit"],sub:"Four stained-glass panes in a walnut case."},
+  {t:"prop",kind:"bookcase",w:"w",u:.3},{t:"prop",kind:"bookcase",w:"w",u:.65},
+  {t:"prop",kind:"table",f:[0,-2.6]},{t:"prop",kind:"chair",f:[1.4,-2.6],ry:1.4}
+ ]},
+
+{name:"The Bookshelf", th:"library", sz:[12,11], par:220, door:{w:"s",u:.5,req:["exit"]},
+ obj:"Pull the six books in the correct order.",
+ hints:["The reading list on the west wall is the order. The books are numbered on their spines.",
+        "The list is in Roman numerals — convert them and pull the books top to bottom.",
+        "The order is 4 · 2 · 6 · 1 · 5 · 3."],
+ objs:[
+  {t:"note",w:"w",u:.4,y:1.5,name:"Reading List",txt:"in this order, and no other:\n\n  IV\n  II\n  VI\n  I\n  V\n  III"},
+  {t:"btnseq",kind:"book",w:"n",u:.5,n:6,order:[4,2,6,1,5,3],set:["exit"]},
+  {t:"prop",kind:"desk",f:[2.8,2.6],ry:-.3},{t:"prop",kind:"lamp",f:[2.8,2.6]},
+  {t:"prop",kind:"bookcase",w:"e",u:.4},{t:"prop",kind:"chair",f:[2.8,1.3],ry:3}
+ ]},
+
+{name:"Word Lock", th:"manor", sz:[11,11], par:220, door:{w:"n",u:.5,req:["exit"]},
+ obj:"Spell the answer on the letter lock.",
+ hints:["The framed riddle has a one-word answer. Five letters.",
+        "Black bird. Forgets nothing. Was in this house before the locks were.",
+        "The word is RAVEN."],
+ objs:[
+  {t:"note",w:"s",u:.5,y:1.5,name:"Riddle, framed",txt:"I am black and I am patient.\nI keep every face I have seen.\nI was in this house before the locks were,\nand I will be here after.\n\nFive letters."},
+  {t:"word",w:"e",u:.5,y:1.4,answer:"RAVEN",set:["exit"],sub:"Five ivory wheels, each carrying the alphabet."},
+  {t:"prop",kind:"bookcase",w:"w",u:.5},{t:"prop",kind:"table",f:[0,2.6]},
+  {t:"prop",kind:"chair",f:[-1.5,2.6],ry:1.6},{t:"prop",kind:"lamp",f:[0,2.6]}
+ ]},
+
+{name:"Candlelight", th:"manor", sz:[12,12], par:235, door:{w:"e",u:.5,req:["exit"]},
+ obj:"Light the four candles in order.",
+ hints:["The candles are numbered. The mantle card gives you events, not numbers.",
+        "Put the four events in the order they happened, then read off the hours.",
+        "Order: 2 · 4 · 1 · 3."],
+ objs:[
+  {t:"note",w:"w",u:.5,y:1.5,name:"Mantle Card",txt:"At two, she arrived.\nAt four, she was seen.\nAt one, she was gone.\nAt three, they looked.\n\nLight them in the order things happened,\nnot in the order of the hours."},
+  {t:"btnseq",kind:"torch",w:"n",u:.5,n:4,order:[2,4,1,3],set:["exit"]},
+  {t:"prop",kind:"table",f:[0,3]},{t:"prop",kind:"bookcase",w:"s",u:.25},
+  {t:"prop",kind:"chair",f:[-3.2,-3],ry:.6},{t:"prop",kind:"desk",f:[3.4,-2.6],ry:-.4}
+ ]},
+
+{name:"The Wine Cellar", th:"manor", sz:[12,12], par:250, door:{w:"n",u:.5,req:["exit"]},
+ obj:"Balance the scale, then take what it releases.",
+ hints:["The scale needs an exact weight. You choose which bottles go on the pan.",
+        "The target is on the plaque; every bottle is labelled with its weight.",
+        "Any set adding to exactly 31 — Claret 14 + Sherry 17 works. Then open the cabinet."],
+ objs:[
+  {t:"note",w:"w",u:.35,y:1.5,name:"Cellar Plaque",txt:"The pan releases the cabinet\nwhen it holds exactly\n\n      THIRTY-ONE\n\nnot a gram more, not a gram less."},
+  {t:"weigh",w:"s",u:.5,y:1.3,target:31,set:["cab"],
+   items:[{n:"Claret",w:14},{n:"Port",w:9},{n:"Hock",w:8},{n:"Sherry",w:17},{n:"Madeira",w:5},{n:"Brandy",w:12}],
+   sub:"A brass pan on a spring, and six bottles on the rack beside it."},
+  {t:"container",kind:"cabinet",w:"e",u:.5,req:["cab"],set:["exit"],
+   lock:"Locked, and wired down to the scale in the corner.",
+   found:"The cabinet clicks open. A long house key hangs on a nail inside."},
+  {t:"prop",kind:"shelf",w:"s",u:.2},{t:"prop",kind:"barrel",f:[-4.2,3.2]},
+  {t:"prop",kind:"barrel",f:[-4.2,1.9]},{t:"prop",kind:"crate",f:[4.2,-3.4]}
+ ]},
+
+{name:"Memory of the House", th:"library", sz:[11,11], par:245, door:{w:"s",u:.5,req:["exit"]},
+ obj:"Reproduce the pattern of lit panes.",
+ hints:["Watch, then click the same cells back. Order does not matter.",
+        "It shows the pattern for a moment only. Do not look away.",
+        "One extra cell each round. Three rounds and it opens."],
+ objs:[
+  {t:"note",w:"n",u:.5,y:1.5,name:"Note Under Glass",txt:"The house remembers rooms\nlong after they are emptied.\n\nSo should you.\n\nThree patterns."},
+  {t:"memory",w:"e",u:.5,y:1.4,n:4,rounds:3,set:["exit"],sub:"Sixteen milk-glass panes in a lead frame."},
+  {t:"prop",kind:"bookcase",w:"w",u:.3},{t:"prop",kind:"bookcase",w:"w",u:.68},
+  {t:"prop",kind:"desk",f:[0,-2.8]},{t:"prop",kind:"lamp",f:[0,-2.8]}
+ ]},
+
+{name:"The Master Key", th:"manor", sz:[14,12], par:320, door:{w:"n",u:.5,req:["exit"]},
+ obj:"Three stages, one key.",
+ hints:["Painting first — it is hiding the ring lock. The rings open the cabinet. The cabinet has the key.",
+        "The two bookplates name the three marks, and give you their order.",
+        "Rings: ✦ ⚷ ☀ . Then open the cabinet and take the master key."],
+ objs:[
+  {t:"painting",w:"w",u:.35,y:1.55,set:["dialSeen"],art:"landscape",
+   reveal:"Behind the canvas: three brass rings set into the panelling."},
+  {t:"note",w:"s",u:.28,y:1.5,name:"Bookplate, first",txt:"He read by starlight\nand slept by none.\n\nThe star came first in everything."},
+  {t:"note",w:"s",u:.66,y:1.5,name:"Bookplate, second",txt:"The key came second in his affections,\nand the sun a distant third."},
+  {t:"dials",w:"w",u:.35,y:1.5,syms:["☀","☾","✦","⚷","✜"],target:[2,3,0],req:["dialSeen"],hide:"dialSeen",set:["cab"],
+   sub:"Three rings, five marks each."},
+  {t:"container",kind:"cabinet",w:"e",u:.55,req:["cab"],set:["exit"],
+   lock:"The cabinet doors are pinned shut from the inside.",
+   found:"A master key, long as your hand, on a leather loop."},
+  {t:"prop",kind:"bookcase",w:"s",u:.85},{t:"prop",kind:"desk",f:[2.4,3.2],ry:-.2},
+  {t:"prop",kind:"chair",f:[2.4,1.9],ry:3.1},{t:"prop",kind:"lamp",f:[2.4,3.2]},
+  {t:"prop",kind:"table",f:[-3.6,3.2]}
+ ]},
+
+/* ---------------- ACT III : THE LABORATORY ---------------- */
+{name:"Sterile Field", th:"lab", sz:[12,11], par:210, door:{w:"n",u:.5,req:["exit"]},
+ obj:"Rewire the terminal block.",
+ hints:["The wiring legend is posted on the west wall. Do not just match colours.",
+        "Each lead goes to the numbered socket the legend specifies, not the obvious one.",
+        "RED→III, BLUE→I, GREEN→IV, AMBER→II."],
+ objs:[
+  {t:"note",w:"w",u:.4,y:1.5,name:"Wiring Legend",txt:"REVISED WIRING — DO NOT MATCH BY COLOUR\n\n  RED    → socket III\n  BLUE   → socket I\n  GREEN  → socket IV\n  AMBER  → socket II"},
+  {t:"wires",w:"e",u:.5,y:1.4,set:["exit"],
+   left:[{n:"RED",c:"#e0574f"},{n:"BLUE",c:"#5b8cff"},{n:"GREEN",c:"#5fd08a"},{n:"AMBER",c:"#f2a93b"}],
+   right:["I","II","III","IV"], map:[2,0,3,1],
+   sub:"Four leads, four sockets. Click a lead, then click its socket."},
+  {t:"prop",kind:"machine",f:[-3.4,-2.8]},{t:"prop",kind:"tank",f:[3.6,2.8]},
+  {t:"prop",kind:"table",f:[0,2.6]},{t:"prop",kind:"shelf",w:"s",u:.25}
+ ]},
+
+{name:"Pipework", th:"foundry", sz:[12,12], par:255, door:{w:"e",u:.5,req:["exit"]},
+ obj:"Route the flow from inlet to outlet.",
+ hints:["Click a pipe segment to rotate it a quarter turn.",
+        "Start at the inlet on the left edge and build the run forward one tile at a time.",
+        "Only one continuous path counts. Dead ends elsewhere do not matter."],
+ objs:[
+  {t:"note",w:"n",u:.35,y:1.5,name:"Stencilled Sign",txt:"LINE 4 — MANUAL ROUTING\n\ninlet: west face.\noutlet: east face.\n\nturn the segments until it runs."},
+  {t:"pipes",w:"s",u:.5,y:1.4,n:5,seed:65,set:["exit"],sub:"A grid of rotating pipe segments behind glass."},
+  {t:"prop",kind:"machine",f:[-3.6,3.2]},{t:"prop",kind:"tank",f:[-3.6,-3]},
+  {t:"prop",kind:"crate",f:[3.4,-3.4]},{t:"prop",kind:"pipe",w:"n",u:.78}
+ ]},
+
+{name:"Laser Bench", th:"lab", sz:[13,12], par:270, door:{w:"n",u:.5,req:["exit"]},
+ obj:"Land the beam on the receiver.",
+ hints:["Interact with a mirror to flip it between its two diagonals.",
+        "Follow the beam out of the emitter and fix the first mirror it reaches, then the next.",
+        "Both mirrors on the beam's path need the '/' orientation. The third mirror is a decoy."],
+ objs:[
+  {t:"note",w:"w",u:.35,y:1.5,name:"Bench Card",txt:"OPTICS BENCH 2\n\nMirrors flip between  /  and  \\ .\nThe emitter fires west to east.\nGet the beam into the receiver."},
+  {t:"laser",g:[5,5],cell:1.5,o:[0,.4],emit:{c:0,r:2,d:0},recv:{c:4,r:0},
+   mirrors:[[2,2,1],[2,0,1],[3,3,0]],set:["exit"]},
+  {t:"prop",kind:"machine",f:[-4.8,-3.8]},{t:"prop",kind:"tank",f:[5,3.6]},
+  {t:"prop",kind:"shelf",w:"e",u:.25}
+ ]},
+
+{name:"Cryo Bay", th:"cryo", sz:[12,12], par:260, door:{w:"s",u:.5,req:["exit"]},
+ obj:"Purge the line, then key in the release.",
+ hints:["The valve must be turned a specific number of times before the panel wakes up.",
+        "The gauge card says how many turns, and tells you how to build the code from that number.",
+        "Seven turns, then the code 0707."],
+ objs:[
+  {t:"note",w:"n",u:.35,y:1.5,name:"Gauge Card",txt:"PURGE PROCEDURE\n\n1. Hand valve: SEVEN full turns.\n2. Release code: the turn count,\n   written twice, padded to four digits.\n\n(three turns would be 0303)"},
+  {t:"valve",w:"w",u:.45,y:1.3,turns:7,set:["purged"]},
+  {t:"keypad",w:"e",u:.5,y:1.35,code:"0707",req:["purged"],set:["exit"],
+   lock:"Dead. The line is still pressurised.",sub:"Release panel. Four digits."},
+  {t:"prop",kind:"tank",f:[-3.6,3.2]},{t:"prop",kind:"tank",f:[-2.2,3.2]},
+  {t:"prop",kind:"machine",f:[3.6,-3.2]},{t:"prop",kind:"pipe",w:"w",u:.8}
+ ]},
+
+{name:"Specimen", th:"lab", sz:[13,12], par:275, door:{w:"n",u:.5,req:["sealA","sealB"]},
+ obj:"Answer the terminal, and collect the five samples.",
+ hints:["Two seals: a question at the terminal, and five sample vials hidden around the room.",
+        "One vial is up on the big machine, one is on the high shelf. Look up.",
+        "The terminal's answer is the one that was never in the room: the control."],
+ objs:[
+  {t:"note",w:"w",u:.3,y:1.5,name:"Lab Log",txt:"Six subjects entered.\nFive gave samples.\nOne never entered at all —\n\nthe terminal wants that one."},
+  {t:"choice",w:"e",u:.5,y:1.4,set:["sealA"],
+   q:"Which subject produced no sample?",
+   opts:["Subject A — sedated","Subject B — reactive","The control","Subject D — deceased"],ans:2,
+   sub:"Terminal query. One answer at a time."},
+  {t:"gems",set:["sealB"],kind:"vial",
+   pts:[[-4.4,2.2,-2.4],[4.6,.6,-3.4],[0,2.15,-4.2],[-1.6,.95,2.6],[5.4,1.9,3.3]]},
+  {t:"prop",kind:"machine",f:[0,-4.2]},{t:"prop",kind:"table",f:[-1.6,2.6]},
+  {t:"prop",kind:"crate",f:[1.6,-4.2]},{t:"prop",kind:"shelf",w:"e",u:.78},
+  {t:"prop",kind:"tank",f:[-4.4,-2.4]}
+ ]},
+
+{name:"The Furnace", th:"foundry", sz:[13,12], par:290, door:{w:"e",u:.5,req:["sealA","sealB"]},
+ obj:"Raise the floor interlock, and light the burner board.",
+ hints:["The floor stones are numbered. Step on them in that order.",
+        "The burner board is a lights-out grid: every one of the nine cells must burn.",
+        "Stones 1 → 2 → 3. On the board, press the four corners."],
+ objs:[
+  {t:"note",w:"n",u:.3,y:1.5,name:"Stamped Plate",txt:"FLOOR INTERLOCK\nstep on stone 1, then 2, then 3.\nout of order and it resets.\n\nBURNER BOARD\nevery cell lit. no exceptions."},
+  {t:"plates",set:["sealA"],pts:[[-3.6,3.4],[0,.4],[3.6,-3.2]],order:[0,1,2]},
+  {t:"lights",w:"s",u:.5,y:1.4,n:3,scr:[0,2,6,8],set:["sealB"],
+   sub:"Nine burner cells. Pressing one flips it and its neighbours."},
+  {t:"prop",kind:"machine",f:[-4.8,-3.6]},{t:"prop",kind:"pipe",w:"n",u:.7},
+  {t:"prop",kind:"tank",f:[5,3.4]},{t:"prop",kind:"crate",f:[-4.6,1.4]}
+ ]},
+
+{name:"Cold Storage", th:"cryo", sz:[13,13], par:300, door:{w:"n",u:.5,req:["exit"]},
+ obj:"Reassemble the shattered index tile.",
+ hints:["It is a sliding puzzle. Click a tile beside the gap to slide it in.",
+        "Solve the top row first, then the left column, then the last four.",
+        "Finished, it reads 1–8 left to right, top to bottom, with the gap at the end."],
+ objs:[
+  {t:"note",w:"w",u:.35,y:1.5,name:"Index Card",txt:"The index tile fell and broke.\nPut it back in order:\n\n   1  2  3\n   4  5  6\n   7  8  _"},
+  {t:"slide",w:"e",u:.5,y:1.4,seed:77,set:["exit"],sub:"Eight numbered tiles and one empty slot."},
+  {t:"prop",kind:"tank",f:[-5,3.8]},{t:"prop",kind:"tank",f:[-3.6,3.8]},
+  {t:"prop",kind:"crate",f:[4.8,-3.8]},{t:"prop",kind:"machine",f:[0,-5]},
+  {t:"prop",kind:"shelf",w:"s",u:.25}
+ ]},
+
+{name:"Containment", th:"lab", sz:[14,13], par:360, door:{w:"s",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"Three interlocks: optics, code, and the breaker bank.",
+ hints:["Do the optics first — the beam loop is what powers the keypad.",
+        "The schematic gives the breaker pattern as O = raised, X = lowered.",
+        "Optics: the first two mirrors on the path go to '/', the third to '\\'. Code 9312. Breakers: up, down, up, up, down."],
+ objs:[
+  {t:"note",w:"w",u:.22,y:1.5,name:"Schematic",txt:"BREAKER BANK, left to right:\n\n     O   X   O   O   X\n\n(O = raised, X = lowered)"},
+  {t:"note",w:"w",u:.62,y:1.5,name:"Duty Sheet",txt:"Release code is the door number,\nthen the year it was sealed.\n\n   door 93  ·  sealed '12"},
+  {t:"laser",g:[6,5],cell:1.4,o:[0,0.2],emit:{c:0,r:4,d:0},recv:{c:5,r:4},
+   mirrors:[[2,4,1],[2,1,1],[5,1,0],[4,3,0]],set:["sealA"]},
+  {t:"keypad",w:"e",u:.3,y:1.35,code:"9312",req:["sealA"],set:["sealB"],
+   lock:"Unpowered. The optics loop feeds this panel.",sub:"Release panel. Four digits."},
+  {t:"levers",w:"n",u:.5,n:5,target:[1,0,1,1,0],set:["sealC"]},
+  {t:"prop",kind:"machine",f:[-5.2,-4.6]},{t:"prop",kind:"tank",f:[5.4,-4.4]},
+  {t:"prop",kind:"shelf",w:"e",u:.82}
+ ]},
+
+/* ---------------- ACT IV : THE VAULT ---------------- */
+{name:"First Seal", th:"vault", sz:[12,12], par:250, door:{w:"n",u:.5,req:["exit"]},
+ obj:"Four rings. Four marks.",
+ hints:["The inscription describes each ring in turn, in order.",
+        "Every line names a shape that is actually on the rings — read them literally.",
+        "Set them to ✜ ☗ ☀ ✦ , left to right."],
+ objs:[
+  {t:"note",w:"s",u:.5,y:1.5,name:"Inscription",txt:"First, the cross of four roads.\nSecond, the closed house.\nThird, the thing that burns.\nLast, the mark of four points.\n\n(the rings carry: ☀ ☾ ✦ ⚷ ✜ ☗)"},
+  {t:"dials",w:"e",u:.5,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[4,5,0,2],set:["exit"],
+   sub:"Four steel rings sunk into the vault wall."},
+  {t:"prop",kind:"pillar",f:[-4.4,-4.2]},{t:"prop",kind:"pillar",f:[4.4,-4.2]},
+  {t:"prop",kind:"machine",f:[0,4.4]}
+ ]},
+
+{name:"The Reliquary", th:"temple", sz:[13,12], par:270, door:{w:"e",u:.5,req:["sealA","sealB"]},
+ obj:"Six relics, and one catch that does not want to be found.",
+ hints:["Six relics. Half of them are not on the floor.",
+        "One relic sits on the altar, one on the statue's shoulder, one on the west shelf.",
+        "The mason's catch is low down at the base of the west pillar."],
+ objs:[
+  {t:"note",w:"n",u:.3,y:1.5,name:"Votive Tablet",txt:"Six offerings, and a seventh act:\n\nfind the catch the mason left,\nlow, and out of the light."},
+  {t:"gems",set:["sealA"],kind:"relic",
+   pts:[[-4.6,.6,3.4],[4.8,.6,-3.4],[0,.95,2.6],[-2.2,1.95,-4.2],[3.2,.6,3.6],[-6.05,1.3,-1.2]]},
+  {t:"switch",f:[-4.8,-2.75],y:.34,set:["sealB"],name:"Mason's Catch"},
+  {t:"prop",kind:"table",f:[0,2.6]},{t:"prop",kind:"pillar",f:[-4.8,-3.4]},
+  {t:"prop",kind:"pillar",f:[4.8,3.4]},{t:"prop",kind:"statue",f:[-2.2,-4.2]},
+  {t:"prop",kind:"shelf",w:"w",u:.6}
+ ]},
+
+{name:"Ossuary", th:"crypt", sz:[13,13], par:290, door:{w:"n",u:.5,req:["sealA","sealB"]},
+ obj:"Name the dead, then repeat what the bells say.",
+ hints:["The epitaph's answer is a six-letter word for what is inside a bone.",
+        "The bells are a watch-and-repeat sequence. Five rounds.",
+        "The word is MARROW."],
+ objs:[
+  {t:"note",w:"w",u:.3,y:1.5,name:"Epitaph",txt:"They took the flesh,\nthey took the name,\nthey left the house of it —\nand what was inside the house.\n\nSix letters."},
+  {t:"word",w:"e",u:.35,y:1.4,answer:"MARROW",set:["sealA"],sub:"Six bone wheels."},
+  {t:"simon",w:"s",u:.5,y:1.4,len:5,set:["sealB"],sub:"Five funeral bells, each a different tone."},
+  {t:"prop",kind:"pillar",f:[-5,4.4]},{t:"prop",kind:"pillar",f:[5,4.4]},
+  {t:"prop",kind:"statue",f:[0,-5]},{t:"prop",kind:"shelf",w:"e",u:.82}
+ ]},
+
+{name:"The Orrery", th:"observatory", sz:[14,13], par:320, door:{w:"s",u:.5,req:["sealA","sealB"]},
+ obj:"Wind the orrery, then match the star chart.",
+ hints:["The crank has a set number of turns; the brass plaque tells you how many.",
+        "The chart panel shows a constellation, then asks you to set it back. Four rounds.",
+        "Eleven turns on the crank."],
+ objs:[
+  {t:"note",w:"n",u:.3,y:1.5,name:"Brass Plaque",txt:"ELEVEN turns will bring the outer ring\nround to the meridian.\n\nThen read the chart,\nand set the chart back."},
+  {t:"valve",w:"w",u:.45,y:1.3,turns:11,set:["sealA"],name:"Orrery Crank"},
+  {t:"memory",w:"e",u:.5,y:1.4,n:4,rounds:4,set:["sealB"],sub:"A field of pinprick lamps behind smoked glass."},
+  {t:"prop",kind:"machine",f:[0,0]},{t:"prop",kind:"pillar",f:[-5.4,-4.6]},
+  {t:"prop",kind:"pillar",f:[5.4,-4.6]},{t:"prop",kind:"desk",f:[4.4,3.6],ry:-.3}
+ ]},
+
+{name:"Tessellation", th:"vault", sz:[13,13], par:320, door:{w:"e",u:.5,req:["sealA","sealB"]},
+ obj:"Route the conduit and light the lattice.",
+ hints:["Two panels. Neither depends on the other, so start with whichever you prefer.",
+        "The conduit is a rotate-the-segments grid; the lattice is a 4×4 lights-out board.",
+        "On the lattice, press the four centre cells."],
+ objs:[
+  {t:"note",w:"n",u:.3,y:1.5,name:"Vault Notice",txt:"CONDUIT: west inlet to east outlet.\nLATTICE: all sixteen cells lit.\n\nBoth, or neither."},
+  {t:"pipes",w:"w",u:.5,y:1.4,n:5,seed:83,set:["sealA"],sub:"Rotating conduit segments."},
+  {t:"lights",w:"s",u:.5,y:1.4,n:4,scr:[5,6,9,10],set:["sealB"],
+   sub:"Sixteen cells in a steel lattice."},
+  {t:"prop",kind:"pillar",f:[-5,-4.8]},{t:"prop",kind:"machine",f:[4.8,-4.4]},
+  {t:"prop",kind:"crate",f:[4.8,4.4]}
+ ]},
+
+{name:"The Long Hall", th:"temple", sz:[17,11], par:350, door:{w:"e",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"Walk the hall three times, three different ways.",
+ hints:["Three mechanisms strung down the length of the hall: braziers, floor stones, and a panel.",
+        "The stones are numbered — walk them 1, 2, 3, 4 from the west end.",
+        "Braziers 5·1·4·6·2·3. Panel code 6413."],
+ objs:[
+  {t:"note",w:"n",u:.12,y:1.5,name:"Processional Rite",txt:"THE BRAZIERS, in this order:\n   fifth, first, fourth, sixth, second, third\n\nTHE STONES: in the order they are numbered.\n\nTHE PANEL, four digits:\n   the count of braziers,\n   the count of stones,\n   the count of doors,\n   the count of statues."},
+  {t:"btnseq",kind:"torch",w:"n",u:.58,n:6,order:[5,1,4,6,2,3],set:["sealA"]},
+  {t:"plates",set:["sealB"],pts:[[-6,3.2],[-2,3.2],[2,3.2],[6,3.2]],order:[0,1,2,3]},
+  {t:"keypad",w:"s",u:.16,y:1.35,code:"6413",set:["sealC"],sub:"A panel of worn ivory keys."},
+  {t:"prop",kind:"statue",f:[-4.4,-3.6]},{t:"prop",kind:"statue",f:[0,-3.6]},
+  {t:"prop",kind:"statue",f:[4.4,-3.6]},
+  {t:"prop",kind:"pillar",f:[-7,3.4]},{t:"prop",kind:"pillar",f:[7,3.4]}
+ ]},
+
+{name:"The Cipher", th:"void", sz:[14,14], par:360, door:{w:"n",u:.5,req:["sealA","sealB","sealC"]},
+ obj:"A word, a number that comes out of it, and a beam.",
+ hints:["Solve the word first — the keypad code is built from its letters.",
+        "Each letter's position in the alphabet, in order, is the four-digit code.",
+        "The word is CAGE → 3, 1, 7, 5 → code 3175. Then fix the four mirrors on the beam path."],
+ objs:[
+  {t:"note",w:"w",u:.22,y:1.5,name:"First Slab",txt:"Four letters.\n\nI have bars but pour nothing.\nI hold what has wings.\nI am not a room —\nand yet I am this room."},
+  {t:"note",w:"w",u:.62,y:1.5,name:"Second Slab",txt:"Take the word.\nGive each letter its place in the alphabet.\n\nThat, in order, is the number."},
+  {t:"word",w:"e",u:.26,y:1.4,answer:"CAGE",set:["sealA"],sub:"Four obsidian wheels."},
+  {t:"keypad",w:"e",u:.7,y:1.35,code:"3175",req:["sealA"],set:["sealB"],
+   lock:"The panel is cold and will not accept input yet.",sub:"Four digits."},
+  {t:"laser",g:[6,6],cell:1.4,o:[0,1.0],emit:{c:0,r:0,d:1},recv:{c:5,r:2},
+   mirrors:[[0,3,0],[2,3,1],[2,0,1],[5,0,0],[4,5,1]],set:["sealC"]},
+  {t:"prop",kind:"pillar",f:[-5.8,-5.6]},{t:"prop",kind:"pillar",f:[5.8,-5.6]},
+  {t:"prop",kind:"statue",f:[0,5.9]}
+ ]},
+
+{name:"The Archive Door", th:"void", sz:[16,14], par:430, door:{w:"s",u:.5,req:["sealA","sealB","sealC","sealD"]},
+ obj:"Four seals. Everything you have learned, at once.",
+ hints:["Four seals: the rings, the breakers, the beam, and six sparks scattered around the hall.",
+        "The ring inscription is written to be read bottom to top, not top to bottom.",
+        "Rings ☾ ✦ ⚷ ☀ · breakers up-up-down-up-down-up · five mirrors to flip · six sparks."],
+ objs:[
+  {t:"note",w:"e",u:.18,y:1.5,name:"The Last Instruction",txt:"FOUR SEALS.\n\nTHE RINGS — read this list bottom to top:\n        the sun\n        the key\n        the star\n        the moon\n\nTHE BREAKERS —   O  O  X  O  X  O\n\nThe beam and the sparks explain themselves."},
+  {t:"dials",w:"w",u:.3,y:1.4,syms:["☀","☾","✦","⚷","✜","☗"],target:[1,2,3,0],set:["sealA"],
+   sub:"Four black rings. The last lock the archive has."},
+  {t:"levers",w:"n",u:.5,n:6,target:[1,1,0,1,0,1],set:["sealB"]},
+  {t:"laser",g:[7,6],cell:1.35,o:[3.0,-.4],emit:{c:0,r:5,d:3},recv:{c:6,r:2},
+   mirrors:[[0,2,1],[3,2,0],[3,5,0],[6,5,1],[5,3,0],[1,4,1]],set:["sealC"]},
+  {t:"gems",set:["sealD"],kind:"spark",
+   pts:[[-6.8,.6,4.6],[-1.8,2.15,-5.4],[-6.9,1.75,-1.4],[0,1.15,5.8],[-3.4,.6,5.8],[-6.8,.6,1.6]]},
+  {t:"prop",kind:"pillar",f:[-7,-5.6]},{t:"prop",kind:"pillar",f:[7,-5.6]},
+  {t:"prop",kind:"statue",f:[-1.8,-5.4]},
+  {t:"prop",kind:"table",f:[0,5.8]},{t:"prop",kind:"shelf",w:"w",u:.5}
+ ]}
+];
+
+/* ============================================================
+   RENDERER / SCENE
+   ============================================================ */
+const G={
+  scene:null,cam:null,ren:null,clock:null,
+  lvl:null,idx:0,W:10,D:10,H:3.4,
+  flags:null,objs:[],hot:[],cols:[],lights:[],
+  inv:[],state:"menu",time:0,hints:0,started:false,
+  yaw:0,pitch:0,pos:null,vel:null,onGround:true,
+  keys:{},lookTarget:null,animT:0
+};
+const EYE=1.62, PRAD=0.34;
+
+function initGL(){
+  const canvas=$("#gl");
+  G.ren=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
+  G.ren.setPixelRatio(Math.min(devicePixelRatio,2));
+  G.ren.setSize(innerWidth,innerHeight);
+  G.ren.outputEncoding=THREE.sRGBEncoding;
+  G.ren.shadowMap.enabled=false;
+  G.cam=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,140);
+  G.clock=new THREE.Clock();
+  addEventListener("resize",()=>{
+    G.ren.setSize(innerWidth,innerHeight);
+    G.cam.aspect=innerWidth/innerHeight;G.cam.updateProjectionMatrix();
+    sizeTitleArt();
+  });
+}
+
+const M={};
+function mat(color,o){
+  o=o||{};const key=color+"|"+JSON.stringify(o);
+  if(M[key])return M[key];
+  const m=new THREE.MeshStandardMaterial(Object.assign({color:color,roughness:.85,metalness:.05},o));
+  M[key]=m;return m;
+}
+function emat(color,i){return new THREE.MeshStandardMaterial({color:color,emissive:color,emissiveIntensity:i==null?.9:i,roughness:.4});}
+function box(w,h,d,m){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);}
+function cyl(rt,rb,h,m,seg){return new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||16),m);}
+function sph(r,m){return new THREE.Mesh(new THREE.SphereGeometry(r,16,12),m);}
+
+/* canvas label texture (numbers / roman / letters on 3D parts) */
+const LabCache={};
+function labelTex(txt,bg,fg,font){
+  const k=txt+bg+fg+(font||"");
+  if(LabCache[k])return LabCache[k];
+  const c=cvs(128),x=c.getContext("2d");
+  x.fillStyle=bg;x.fillRect(0,0,128,128);
+  x.fillStyle=fg;x.font=(font||"bold 74px Georgia");x.textAlign="center";x.textBaseline="middle";
+  x.fillText(txt,64,70);
+  const t=new THREE.CanvasTexture(c);LabCache[k]=t;return t;
+}
+
+/* ---------- placement ---------- */
+function place(s){
+  const W=G.W,D=G.D,e=.18;
+  if(s.f)return{x:s.f[0],y:s.y||0,z:s.f[1],ry:s.ry||0};
+  const y=s.y==null?1.4:s.y;
+  switch(s.w){
+    case "n":return{x:-W/2+s.u*W,y,z:-D/2+e,ry:0};
+    case "s":return{x: W/2-s.u*W,y,z: D/2-e,ry:Math.PI};
+    case "w":return{x:-W/2+e,y,z: D/2-s.u*D,ry:Math.PI/2};
+    default: return{x: W/2-e,y,z:-D/2+s.u*D,ry:-Math.PI/2};
+  }
+}
+function addCol(x,z,w,d,top){G.cols.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2,top:top});}
+
+/* ============================================================
+   ROOM
+   ============================================================ */
+function buildRoom(th){
+  const T=THEMES[th],W=G.W,D=G.D,H=G.H;
+  G.scene.background=new THREE.Color(T.fog);
+  G.scene.fog=new THREE.Fog(T.fog,8,34);
+
+  const ftex=makeTex(T.ft,T.floor,3),wtex=makeTex(T.wt,T.wall,5),ctex=makeTex("concrete",T.ceil,7);
+  const fm=new THREE.MeshStandardMaterial({map:ftex.clone(),roughness:.92,metalness:.04});
+  fm.map.repeat.set(W/2.6,D/2.6);fm.map.needsUpdate=true;
+  const wmY=H/2.6;
+  const mkWall=(w,h)=>{const t=wtex.clone();t.repeat.set(w/2.6,wmY);t.needsUpdate=true;
+    return new THREE.MeshStandardMaterial({map:t,roughness:.92,metalness:.04});};
+  const cm=new THREE.MeshStandardMaterial({map:ctex.clone(),roughness:.96});
+  cm.map.repeat.set(W/3,D/3);cm.map.needsUpdate=true;
+
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(W,D),fm);
+  floor.rotation.x=-Math.PI/2;G.scene.add(floor);
+  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(W,D),cm);
+  ceil.rotation.x=Math.PI/2;ceil.position.y=H;G.scene.add(ceil);
+
+  const th_=.4;
+  const wN=box(W+th_*2,H,th_,mkWall(W,H));wN.position.set(0,H/2,-D/2-th_/2);G.scene.add(wN);
+  const wS=box(W+th_*2,H,th_,mkWall(W,H));wS.position.set(0,H/2, D/2+th_/2);G.scene.add(wS);
+  const wW=box(th_,H,D,mkWall(D,H));wW.position.set(-W/2-th_/2,H/2,0);G.scene.add(wW);
+  const wE=box(th_,H,D,mkWall(D,H));wE.position.set( W/2+th_/2,H/2,0);G.scene.add(wE);
+
+  /* trim */
+  const trim=mat(T.ceil,{roughness:.7});
+  [[0,-D/2+.06,W,.12],[0,D/2-.06,W,.12]].forEach(p=>{
+    const b=box(p[2],.16,p[3],trim);b.position.set(p[0],.08,p[1]);G.scene.add(b);});
+  [[-W/2+.06,0,.12,D],[W/2-.06,0,.12,D]].forEach(p=>{
+    const b=box(p[2],.16,p[3],trim);b.position.set(p[0],.08,p[1]);G.scene.add(b);});
+
+  /* collision: walls */
+  G.cols.push({x0:-W/2-2,x1:-W/2+.02,z0:-D/2-2,z1:D/2+2,top:99});
+  G.cols.push({x0: W/2-.02,x1: W/2+2,z0:-D/2-2,z1:D/2+2,top:99});
+  G.cols.push({x0:-W/2-2,x1: W/2+2,z0:-D/2-2,z1:-D/2+.02,top:99});
+  G.cols.push({x0:-W/2-2,x1: W/2+2,z0: D/2-.02,z1: D/2+2,top:99});
+
+  /* lighting */
+  G.scene.add(new THREE.AmbientLight(T.amb,T.ai*.62));
+  const hemi=new THREE.HemisphereLight(T.amb,T.floor,.2);G.scene.add(hemi);
+  const spots=[[-W/4,H-.75,-D/4],[W/4,H-.75,-D/4],[-W/4,H-.75,D/4],[W/4,H-.75,D/4]];
+  spots.forEach(p=>{
+    const l=new THREE.PointLight(T.lamp,T.li*.8,Math.max(W,D)*1.1,1.9);
+    l.position.set(p[0],p[1],p[2]);G.scene.add(l);G.lights.push(l);
+    const g=sph(.11,emat(T.lamp,1.4));g.position.copy(l.position);G.scene.add(g);
+    const rod=cyl(.02,.02,.75,mat(0x22262c));rod.position.set(p[0],H-.37,p[2]);G.scene.add(rod);
+    const sh=new THREE.Mesh(new THREE.ConeGeometry(.26,.26,14,1,true),
+      new THREE.MeshStandardMaterial({color:0x2b3037,side:THREE.DoubleSide,roughness:.8}));
+    sh.position.set(p[0],p[1]+.14,p[2]);G.scene.add(sh);
+  });
+  const key=new THREE.DirectionalLight(T.lamp,.14);key.position.set(3,8,4);G.scene.add(key);
+}
+
+/* ---------- exit door ---------- */
+function buildDoor(spec){
+  const T=THEMES[G.lvl.th],p=place({w:spec.w,u:spec.u,y:0});
+  const g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.y=p.ry;G.scene.add(g);
+
+  const frameM=mat(0x3a3f47,{metalness:.55,roughness:.5});
+  const dm=new THREE.MeshStandardMaterial({map:makeTex("metal",0x5a6068,11),roughness:.55,metalness:.5});
+  const leaf=new THREE.Group();
+  const slab=box(1.9,2.6,.14,dm);slab.position.set(0,1.3,.03);leaf.add(slab);
+  const hub=cyl(.34,.34,.1,mat(THEMES[G.lvl.th].accent,{metalness:.7,roughness:.35,emissive:0x000000}),24);
+  hub.rotation.x=Math.PI/2;hub.position.set(0,1.45,.12);leaf.add(hub);
+  for(let i=0;i<6;i++){const s=box(.08,.5,.06,frameM);
+    s.position.set(Math.sin(i/6*TAU)*.5,1.45+Math.cos(i/6*TAU)*.5,.12);
+    s.rotation.z=-i/6*TAU;leaf.add(s);}
+  g.add(leaf);
+
+  /* frame + seal lamps */
+  [[-1.08,0],[1.08,0]].forEach(o=>{const b=box(.26,2.9,.3,frameM);b.position.set(o[0],1.45,.06);g.add(b);});
+  const lint=box(2.42,.26,.3,frameM);lint.position.set(0,2.73,.06);g.add(lint);
+
+  const seals=[];const need=spec.req;
+  need.forEach((f,i)=>{
+    const sl=sph(.075,emat(0x552222,.7));
+    sl.position.set(-((need.length-1)/2-i)*.3,2.73,.24);g.add(sl);seals.push(sl);
+  });
+
+  addCol(p.x+Math.sin(p.ry)*.2,p.z+Math.cos(p.ry)*.2,
+         Math.abs(Math.cos(p.ry))>.5?2.4:.5, Math.abs(Math.cos(p.ry))>.5?.5:2.4, 99);
+
+  const o={spec:{t:"door"},root:g,hot:[slab,hub],open:false,leaf:leaf,seals:seals,need:need,
+    label(){ const miss=this.need.filter(f=>!G.flags.has(f)).length;
+      return miss? "The Door — "+(this.need.length-miss)+" of "+this.need.length+" seals released"
+                 : "Open the Door";},
+    can(){return !this.open;},
+    act(){
+      if(!this.can()){Audio_.no();toast("Still sealed. "+
+        this.need.filter(f=>!G.flags.has(f)).length+" mechanism(s) to go.","bad");shakeDoor(this);return;}
+      if(this.open)return; this.open=true; Audio_.unlock(); levelCleared();
+    },
+    update(dt){
+      this.seals.forEach((s,i)=>{
+        const lit=G.flags.has(this.need[i]);
+        s.material.color.setHex(lit?0x5fd08a:0x552222);
+        s.material.emissive.setHex(lit?0x5fd08a:0x441111);
+        s.material.emissiveIntensity=lit?(1.1+Math.sin(G.animT*4+i)*.25):.6;
+      });
+      if(this.open)this.leaf.rotation.y=lerp(this.leaf.rotation.y,-1.35,Math.min(1,dt*3));
+    }};
+  G.objs.push(o);hotify(o);
+  return o;
+}
+function shakeDoor(o){let t=0;const iv=setInterval(()=>{t+=1;o.root.position.x+=Math.sin(t*2)*.012;
+  if(t>10){clearInterval(iv);}},16);}
+
+function hotify(o){o.hot.forEach(m=>{m.userData.o=o;G.hot.push(m);});}
+
+/* ============================================================
+   DECORATIVE PROPS
+   ============================================================ */
+function buildProp(s){
+  const T=THEMES[G.lvl.th],p=place(s),g=new THREE.Group();
+  g.position.set(p.x,(s.y!=null?s.y:0),p.z);g.rotation.y=p.ry;G.scene.add(g);
+  const wood=mat(0x53381f,{roughness:.9}),iron=mat(0x3c4149,{metalness:.6,roughness:.5}),
+        stone=mat(T.wall,{roughness:.95});
+  switch(s.kind){
+    case "barrel":{
+      const b=cyl(.36,.4,.95,new THREE.MeshStandardMaterial({map:makeTex("wood",0x6a4526,3),roughness:.9}),18);
+      b.position.y=.475;g.add(b);
+      [.24,.72].forEach(y=>{const r=cyl(.415,.415,.07,iron,18);r.position.y=y;g.add(r);});
+      addCol(p.x,p.z,.85,.85,.95);break;}
+    case "crate":{
+      const m=new THREE.MeshStandardMaterial({map:makeTex("wood",0x7a5730,4),roughness:.9});
+      const b=box(1.05,1.05,1.05,m);b.position.y=.525;g.add(b);
+      const e=mat(0x3a2a18);
+      [[0,1.06,0,1.1,.06,1.1],[0,0,0,1.1,.06,1.1]].forEach(a=>{
+        const q=box(a[3],a[4],a[5],e);q.position.set(a[0],a[1],a[2]);g.add(q);});
+      addCol(p.x,p.z,1.15,1.15,1.06);break;}
+    case "table":{
+      const m=new THREE.MeshStandardMaterial({map:makeTex("wood",0x5c3f22,6),roughness:.85});
+      const t=box(1.7,.09,1.1,m);t.position.y=.76;g.add(t);
+      [[-.72,-.42],[.72,-.42],[-.72,.42],[.72,.42]].forEach(l=>{
+        const q=box(.1,.76,.1,wood);q.position.set(l[0],.38,l[1]);g.add(q);});
+      addCol(p.x,p.z,1.8,1.2,.8);break;}
+    case "desk":{
+      const m=new THREE.MeshStandardMaterial({map:makeTex("wood",0x4a3018,8),roughness:.8});
+      const t=box(1.6,.1,.8,m);t.position.y=.78;g.add(t);
+      const ped=box(.55,.72,.72,m);ped.position.set(.48,.38,0);g.add(ped);
+      [[-.7,-.3],[-.7,.3]].forEach(l=>{const q=box(.09,.78,.09,wood);q.position.set(l[0],.39,l[1]);g.add(q);});
+      for(let i=0;i<3;i++){const d=box(.46,.16,.03,mat(0x2e1e10));d.position.set(.48,.22+i*.22,.37);g.add(d);
+        const h=box(.16,.03,.03,mat(0xb08a40,{metalness:.7,roughness:.4}));h.position.set(.48,.22+i*.22,.4);g.add(h);}
+      addCol(p.x,p.z,1.7,.95,.82);break;}
+    case "chair":{
+      const seat=box(.5,.08,.5,wood);seat.position.y=.46;g.add(seat);
+      const back=box(.5,.6,.07,wood);back.position.set(0,.76,-.22);g.add(back);
+      [[-.2,-.2],[.2,-.2],[-.2,.2],[.2,.2]].forEach(l=>{
+        const q=box(.07,.46,.07,wood);q.position.set(l[0],.23,l[1]);g.add(q);});
+      addCol(p.x,p.z,.6,.6,.5);break;}
+    case "shelf":{
+      const m=new THREE.MeshStandardMaterial({map:makeTex("wood",0x4d3520,9),roughness:.9});
+      for(let i=0;i<2;i++){const b=box(1.9,.07,.44,m);b.position.set(0,1.15+i*.72,.2);g.add(b);}
+      [[-.9],[.9]].forEach(x=>{const q=box(.07,1.9,.44,m);q.position.set(x[0],1.4,.2);g.add(q);});
+      for(let i=0;i<9;i++){const bk=box(.09+Math.random()*.06,.26+Math.random()*.12,.3,
+        mat([0x6b3a2c,0x2f4a3a,0x3a3a5c,0x6b5a2c][i%4]));
+        bk.position.set(-.78+i*.19,1.36,.2);g.add(bk);}
+      break;}
+    case "bookcase":{
+      const m=new THREE.MeshStandardMaterial({map:makeTex("wood",0x402c18,10),roughness:.9});
+      const c=box(2,2.5,.5,m);c.position.set(0,1.25,.25);g.add(c);
+      for(let r=0;r<4;r++){
+        const back=box(1.8,.5,.06,mat(0x1a1208));back.position.set(0,.45+r*.6,.46);g.add(back);
+        for(let i=0;i<11;i++){const h=.32+Math.random()*.14;
+          const bk=box(.11,h,.34,mat([0x6b3a2c,0x2f4a3a,0x3a3a5c,0x6b5a2c,0x53324a][(i+r)%5]));
+          bk.position.set(-.78+i*.155,.3+r*.6+h/2,.3);g.add(bk);}}
+      addCol(p.x+Math.sin(p.ry)*.28,p.z+Math.cos(p.ry)*.28,
+             Math.abs(Math.cos(p.ry))>.5?2.1:.6,Math.abs(Math.cos(p.ry))>.5?.6:2.1,99);
+      break;}
+    case "pillar":{
+      const m=new THREE.MeshStandardMaterial({map:makeTex(T.wt,T.wall,12),roughness:.95});
+      const c=cyl(.32,.36,G.H,m,14);c.position.y=G.H/2;g.add(c);
+      const cap=box(.9,.16,.9,stone);cap.position.y=G.H-.08;g.add(cap);
+      const base=box(.9,.18,.9,stone);base.position.y=.09;g.add(base);
+      addCol(p.x,p.z,.85,.85,99);break;}
+    case "lamp":{
+      const rod=cyl(.015,.015,G.H-2.35,mat(0x22262c));rod.position.y=G.H-(G.H-2.35)/2;g.add(rod);
+      const sh=new THREE.Mesh(new THREE.ConeGeometry(.3,.34,16,1,true),
+        new THREE.MeshStandardMaterial({color:0x3a3026,side:THREE.DoubleSide,roughness:.8}));
+      sh.position.y=2.2;g.add(sh);
+      const bulb=sph(.09,emat(T.lamp,2.1));bulb.position.y=2.08;g.add(bulb);
+      const l=new THREE.PointLight(T.lamp,.85,7,1.9);l.position.set(p.x,p.y+2.05,p.z);G.scene.add(l);
+      break;}
+    case "machine":{
+      const m=new THREE.MeshStandardMaterial({map:makeTex("metal",0x596069,13),roughness:.6,metalness:.5});
+      const b=box(1.5,2,1,m);b.position.y=1;g.add(b);
+      const top=box(1.6,.14,1.1,mat(0x33383f,{metalness:.6}));top.position.y=2.03;g.add(top);
+      for(let i=0;i<4;i++){const d=sph(.07,emat([0x5fd08a,0xf2a93b,0x3fd0c9,0xe0574f][i],.8));
+        d.position.set(-.45+i*.3,1.55,.52);g.add(d);}
+      const scr=box(.7,.44,.04,emat(T.accent,.35));scr.position.set(0,1.15,.52);g.add(scr);
+      addCol(p.x,p.z,1.6,1.1,2.05);break;}
+    case "tank":{
+      const glass=new THREE.MeshStandardMaterial({color:0x8fd6ff,transparent:true,opacity:.28,
+        roughness:.15,metalness:.1});
+      const c=cyl(.4,.4,1.9,glass,20);c.position.y=1.05;g.add(c);
+      const liq=cyl(.36,.36,1.1,new THREE.MeshStandardMaterial({color:T.accent,transparent:true,
+        opacity:.45,emissive:T.accent,emissiveIntensity:.4}),20);liq.position.y=.75;g.add(liq);
+      [[.1],[2.05]].forEach(y=>{const r=cyl(.44,.44,.14,mat(0x3c4149,{metalness:.7}),20);
+        r.position.y=y[0];g.add(r);});
+      addCol(p.x,p.z,.95,.95,2.1);break;}
+    case "pipe":{
+      const m=mat(0x5a5148,{metalness:.55,roughness:.6});
+      const c=cyl(.13,.13,G.D*.8,m,14);c.rotation.z=Math.PI/2;c.position.set(0,2.5,.28);g.add(c);
+      for(let i=-2;i<=2;i++){const r=cyl(.17,.17,.12,m,14);r.rotation.z=Math.PI/2;
+        r.position.set(i*1.6,2.5,.28);g.add(r);}
+      break;}
+    case "statue":{
+      const m=new THREE.MeshStandardMaterial({map:makeTex("marble",0x9c927c,14),roughness:.8});
+      const base=box(.8,.32,.8,m);base.position.y=.16;g.add(base);
+      const body=cyl(.2,.3,1.25,m,12);body.position.y=.95;g.add(body);
+      const sh=box(.62,.18,.3,m);sh.position.y=1.6;g.add(sh);
+      const hd=sph(.19,m);hd.position.y=1.83;g.add(hd);
+      addCol(p.x,p.z,.9,.9,1.95);break;}
+  }
+  return g;
+}
+
+/* ============================================================
+   INTERACTABLE OBJECTS
+   ============================================================ */
+function setFlag(f){ if(!f)return; if(G.flags.has(f))return; G.flags.add(f); UI.objective(); }
+function grant(s){ (s.set||[]).forEach(setFlag); }
+function gateOK(s){ return !s.req || s.req.every(f=>G.flags.has(f)); }
+
+function device(s,w,h,d,col){
+  const p=place(s),g=new THREE.Group();
+  g.position.set(p.x,p.y,p.z);g.rotation.y=p.ry;G.scene.add(g);
+  const bodyM=mat(col==null?0x2b3037:col,{metalness:.5,roughness:.5});
+  const body=box(w,h,d,bodyM);body.position.z=d/2;g.add(body);
+  const bez=box(w+.08,h+.08,.05,mat(0x14181d,{metalness:.6,roughness:.4}));
+  bez.position.z=.02;g.add(bez);
+  return{g,body,p};
+}
+function screwsOn(g,w,h,d){
+  const sm=mat(0x8d949c,{metalness:.8,roughness:.3});
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(o=>{
+    const s=cyl(.022,.022,.02,sm,8);s.rotation.x=Math.PI/2;
+    s.position.set(o[0]*(w/2-.06),o[1]*(h/2-.06),d+.005);g.add(s);});
+}
+
+/* ---------- NOTE ---------- */
+function bNote(s){
+  const p=place(s);
+  const g=new THREE.Group();g.position.set(p.x,p.y,p.z);g.rotation.y=p.ry;G.scene.add(g);
+  let hot;
+  if(s.f){ /* floor slab */
+    const m=new THREE.MeshStandardMaterial({map:makeTex("stone",0x8a8272,15),roughness:.95});
+    const sl=box(1.3,.1,1.3,m);sl.rotation.y=.2;sl.position.y=.05;g.add(sl);
+    const eng=box(.9,.02,.9,mat(0x6a6252));eng.position.y=.105;eng.rotation.y=.2;g.add(eng);
+    hot=sl;
+  }else{
+    const frame=box(.66,.5,.05,mat(0x4a3a26,{roughness:.7}));frame.position.z=.02;g.add(frame);
+    const paper=box(.56,.4,.02,mat(0xd8cba6,{roughness:.95}));paper.position.z=.05;g.add(paper);
+    for(let i=0;i<6;i++){const ln=box(.4-Math.random()*.14,.014,.005,mat(0x6a5b42));
+      ln.position.set(-.05+Math.random()*.05,.14-i*.055,.062);g.add(ln);}
+    hot=paper;
+  }
+  const o={spec:s,root:g,hot:[hot],
+    label(){return "Read — "+s.name;},can(){return true;},
+    act(){Audio_.click();grant(s);Modal.note(s.name,s.txt);},update(){}};
+  G.objs.push(o);hotify(o);
+}
+
+/* ---------- KEY ---------- */
+function bKey(s){
+  const p=place(s);
+  const g=new THREE.Group();g.position.set(p.x,(s.y||0)+.55,p.z);G.scene.add(g);
+  const km=new THREE.MeshStandardMaterial({color:s.col||0xc9a227,metalness:.85,roughness:.28,
+    emissive:s.col||0xc9a227,emissiveIntensity:.18});
+  const shaft=cyl(.022,.022,.34,km,10);shaft.rotation.z=Math.PI/2;g.add(shaft);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.075,.022,8,18),km);ring.position.x=-.2;g.add(ring);
+  const b1=box(.03,.09,.03,km);b1.position.set(.14,-.05,0);g.add(b1);
+  const b2=box(.03,.06,.03,km);b2.position.set(.08,-.035,0);g.add(b2);
+  const l=new THREE.PointLight(s.col||0xffd27a,.5,2.2,2);l.position.copy(g.position);G.scene.add(l);
+  const o={spec:s,root:g,hot:[shaft,ring],taken:false,light:l,base:g.position.y,
+    label(){return "Take the "+s.name;},can(){return true;},
+    act(){ if(this.taken)return;this.taken=true;Audio_.pick();
+      G.scene.remove(this.root);G.scene.remove(this.light);
+      G.hot=G.hot.filter(m=>this.hot.indexOf(m)<0);
+      addItem(s.name,"#"+(s.col||0xc9a227).toString(16).padStart(6,"0"));
+      toast("Picked up: "+s.name,"good");grant(s);},
+    update(dt){ if(this.taken)return;
+      this.root.rotation.y+=dt*1.1;
+      this.root.position.y=this.base+Math.sin(G.animT*1.8)*.06;}};
+  G.objs.push(o);hotify(o);
+}
+
+/* ---------- GEMS ---------- */
+const GEMSTYLE={
+  gem:{c:0x8fd6ff,n:"Shard"},vial:{c:0x5fd08a,n:"Sample vial"},
+  relic:{c:0xffcb5c,n:"Relic"},spark:{c:0xa98bff,n:"Spark"}
+};
+function bGems(s){
+  const st=GEMSTYLE[s.kind||"gem"],total=s.pts.length;let got=0;
+  s.pts.forEach((pt,i)=>{
+    const g=new THREE.Group();g.position.set(pt[0],pt[1],pt[2]);G.scene.add(g);
+    const m=new THREE.MeshStandardMaterial({color:st.c,emissive:st.c,emissiveIntensity:.85,
+      roughness:.2,metalness:.3,transparent:true,opacity:.92});
+    const core=new THREE.Mesh(new THREE.OctahedronGeometry(.15,0),m);g.add(core);
+    const halo=new THREE.Mesh(new THREE.OctahedronGeometry(.24,0),
+      new THREE.MeshBasicMaterial({color:st.c,transparent:true,opacity:.14}));g.add(halo);
+    const l=new THREE.PointLight(st.c,.55,2.6,2);l.position.copy(g.position);G.scene.add(l);
+    const o={spec:s,root:g,hot:[core,halo],taken:false,light:l,base:pt[1],
+      label(){return "Take "+st.n+"  ("+got+"/"+total+" found)";},can(){return true;},
+      act(){ if(this.taken)return;this.taken=true;got++;Audio_.pick();
+        G.scene.remove(this.root);G.scene.remove(this.light);
+        G.hot=G.hot.filter(x=>this.hot.indexOf(x)<0);
+        toast(st.n+" "+got+" of "+total,"good");
+        setInvCount(st.n,got+" / "+total,"#"+st.c.toString(16).padStart(6,"0"));
+        if(got===total){Audio_.unlock();toast("All "+total+" collected.","good");grant(s);} },
+      update(dt){ if(this.taken)return; this.root.rotation.y+=dt*1.5;this.root.rotation.x+=dt*.6;
+        this.root.position.y=this.base+Math.sin(G.animT*2+i)*.07;
+        this.light.intensity=.45+Math.sin(G.animT*3+i)*.15;}};
+    G.objs.push(o);hotify(o);
+  });
+  setInvCount(st.n,"0 / "+total,"#"+st.c.toString(16).padStart(6,"0"));
+}
+
+/* ---------- SWITCH (hidden catch) ---------- */
+function bSwitch(s){
+  const p=place(s),g=new THREE.Group();
+  g.position.set(p.x,p.y,p.z);g.rotation.y=p.ry;G.scene.add(g);
+  const plate=box(.2,.24,.05,mat(0x3a3f47,{metalness:.6,roughness:.45}));g.add(plate);
+  const nub=cyl(.035,.035,.1,mat(0x9c6b2c,{metalness:.7,roughness:.35}),10);
+  nub.rotation.x=Math.PI/2;nub.position.z=.06;g.add(nub);
+  const o={spec:s,root:g,hot:[plate,nub],done:false,
+    label(){return this.done?(s.name||"Catch")+" — released":"Pull the "+(s.name||"catch");},
+    can(){return !this.done;},
+    act(){ if(this.done)return;this.done=true;Audio_.unlock();
+      nub.position.z=.02;plate.material=mat(0x2f6b4b,{metalness:.5});
+      toast("Something heavy shifts in the wall.","good");grant(s);},update(){}};
+  G.objs.push(o);hotify(o);
+}
+
+/* ---------- CONTAINER ---------- */
+function bContainer(s){
+  const p=place(s),g=new THREE.Group();
+  g.position.set(p.x,(s.f?(s.y||0):0),p.z);g.rotation.y=p.ry;G.scene.add(g);
+  const wm=new THREE.MeshStandardMaterial({map:makeTex("wood",0x5c3d20,16),roughness:.85});
+  const im=mat(0x565c66,{metalness:.7,roughness:.4});
+  let lid,hot;
+  if(s.kind==="cabinet"){
+    const c=box(1.2,1.9,.5,wm);c.position.set(0,.95,.25);g.add(c);
+    lid=new THREE.Group();lid.position.set(-.6,.95,.5);g.add(lid);
+    const dr=box(1.18,1.7,.06,wm);dr.position.set(.59,0,0);lid.add(dr);
+    const h=cyl(.03,.03,.16,im,8);h.position.set(1.05,0,.06);h.rotation.x=Math.PI/2;lid.add(h);
+    hot=dr;
+    addCol(p.x+Math.sin(p.ry)*.3,p.z+Math.cos(p.ry)*.3,
+      Math.abs(Math.cos(p.ry))>.5?1.3:.7,Math.abs(Math.cos(p.ry))>.5?.7:1.3,1.95);
+  }else{ /* chest */
+    const base=box(1.1,.6,.72,wm);base.position.y=.3;g.add(base);
+    lid=new THREE.Group();lid.position.set(0,.6,-.36);g.add(lid);
+    const top=box(1.1,.14,.72,wm);top.position.set(0,.07,.36);lid.add(top);
+    [-.35,.35].forEach(x=>{const b=box(.08,.16,.74,im);b.position.set(x,.07,.36);lid.add(b);});
+    const lock=box(.16,.2,.06,im);lock.position.set(0,.55,.39);g.add(lock);
+    hot=top;
+    addCol(p.x,p.z,1.2,.85,.78);
+  }
+  const o={spec:s,root:g,hot:[hot],open:false,lid:lid,
+    label(){return this.open?"Empty":(gateOK(s)?"Open the "+(s.kind==="cabinet"?"cabinet":"chest"):"Locked");},
+    can(){return !this.open;},
+    act(){
+      if(this.open)return;
+      if(!gateOK(s)){Audio_.no();Modal.note("Locked",s.lock||"It will not open.");return;}
+      this.open=true;Audio_.unlock();grant(s);
+      Modal.note("Opened",s.found||"There is something inside.");
+      if(s.found&&/key/i.test(s.found))addItem("Key","#c9a227");
+    },
+    update(dt){ if(!this.open)return;
+      if(s.kind==="cabinet")this.lid.rotation.y=lerp(this.lid.rotation.y,-1.5,Math.min(1,dt*4));
+      else this.lid.rotation.x=lerp(this.lid.rotation.x,-1.9,Math.min(1,dt*4));}};
+  G.objs.push(o);hotify(o);
+}
+
+/* ---------- PAINTING ---------- */
+function bPainting(s){
+  const p=place(s),g=new THREE.Group();
+  g.position.set(p.x,p.y,p.z);g.rotation.y=p.ry;G.scene.add(g);
+  const swing=new THREE.Group();swing.position.set(-.5,0,.04);g.add(swing);
+  const fm=mat(0x6b4a1e,{metalness:.35,roughness:.5});
+  const frame=box(1.05,.85,.07,fm);frame.position.set(.5,0,0);swing.add(frame);
+  const c=cvs(128),x=c.getContext("2d");
+  if(s.art==="portrait"){
+    x.fillStyle="#2b2418";x.fillRect(0,0,128,128);
+    x.fillStyle="#6b5238";x.beginPath();x.ellipse(64,58,26,32,0,0,TAU);x.fill();
+    x.fillStyle="#1f1a12";x.beginPath();x.ellipse(64,110,44,34,0,0,TAU);x.fill();
+    x.fillStyle="#241d14";x.beginPath();x.ellipse(56,52,4,6,0,0,TAU);x.ellipse(74,52,4,6,0,0,TAU);x.fill();
+  }else{
+    const gg=x.createLinearGradient(0,0,0,128);gg.addColorStop(0,"#4a5a6b");gg.addColorStop(1,"#2b3524");
+    x.fillStyle=gg;x.fillRect(0,0,128,128);
+    x.fillStyle="#1d2418";for(let i=0;i<5;i++){x.beginPath();x.moveTo(i*30-10,90);
+      x.lineTo(i*30+14,52+i*4);x.lineTo(i*30+40,90);x.fill();}
+    x.fillStyle="#6b5a3a";x.fillRect(0,92,128,36);
+  }
+  const canvasM=new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(c),roughness:.9});
+  const art=box(.9,.72,.02,canvasM);art.position.set(.5,0,.05);swing.add(art);
+  const o={spec:s,root:g,hot:[art,frame],done:false,swing:swing,
+    label(){return this.done?"The frame hangs open":"Look behind the painting";},
+    can(){return !this.done;},
+    act(){ if(this.done)return;this.done=true;Audio_.unlock();
+      grant(s);Modal.note("Behind the frame",s.reveal||"Something is set into the wall.");
+      revealHidden();},
+    update(dt){ if(this.done)this.swing.rotation.y=lerp(this.swing.rotation.y,-1.15,Math.min(1,dt*3.5));}};
+  G.objs.push(o);hotify(o);
+}
+function revealHidden(){
+  G.objs.forEach(o=>{ const h=o.spec&&o.spec.hide;
+    if(h&&G.flags.has(h)&&o.root&&!o.root.visible){o.root.visible=true;} });
+}
+
+/* ---------- LEVERS ---------- */
+function bLevers(s){
+  const p=place(s),g=new THREE.Group();
+  g.position.set(p.x,1.3,p.z);g.rotation.y=p.ry;G.scene.add(g);
+  const n=s.n,gap=.42,off=-(n-1)*gap/2;
+  const im=mat(0x6a7079,{metalness:.75,roughness:.35});
+  const plate=box(n*gap+.3,.9,.09,mat(0x2b3037,{metalness:.5,roughness:.5}));
+  plate.position.z=.045;g.add(plate);
+  screwsOn(g,n*gap+.3,.9,.09);
+  const arms=[],lamps=[],state=[];
+  for(let i=0;i<n;i++){
+    const pivot=new THREE.Group();pivot.position.set(off+i*gap,-.12,.12);g.add(pivot);
+    const arm=cyl(.028,.034,.34,im,10);arm.position.y=.17;pivot.add(arm);
+    const knob=sph(.055,mat(0xb8452f,{roughness:.5}));knob.position.y=.34;pivot.add(knob);
+    const hub=cyl(.05,.05,.06,mat(0x3a3f47,{metalness:.7}),12);hub.rotation.x=Math.PI/2;
+    hub.position.set(off+i*gap,-.12,.12);g.add(hub);
+    const num=box(.16,.16,.01,new THREE.MeshBasicMaterial({map:labelTex(String(i+1),"#11151a","#ffc86b")}));
+    num.position.set(off+i*gap,-.35,.1);g.add(num);
+    const lamp=sph(.028,emat(0x552222,.6));lamp.position.set(off+i*gap,.33,.1);g.add(lamp);
+    arms.push(pivot);lamps.push(lamp);state.push(0);
+    arm.userData.li=i;knob.userData.li=i;
+    const o={spec:s,root:g,hot:[arm,knob],li:i,
+      label(){return "Lever "+(i+1)+" — "+(state[i]?"raised":"lowered");},can(){return true;},
+      act(){ state[i]=state[i]?0:1;Audio_.beep(state[i]?330:240,.1,"square",.12);check(); },
+      update(dt){ pivot.rotation.x=lerp(pivot.rotation.x,state[i]?-.55:.55,Math.min(1,dt*11));
+        const ok=state[i]===s.target[i];
+        lamp.material.emissive.setHex(state[i]?0x5fd08a:0x552222);
+        lamp.material.color.setHex(state[i]?0x5fd08a:0x552222);}};
+    G.objs.push(o);hotify(o);
+  }
+  let solved=false;
+  function check(){
+    if(solved)return;
+    if(state.every((v,i)=>v===s.target[i])){solved=true;Audio_.unlock();
+      toast("The breaker bank locks into place.","good");grant(s);}
+  }
+}
+
+/* ---------- BUTTON SEQUENCE (buttons / books / torches) ---------- */
+function bBtnSeq(s){
+  const p=place(s),g=new THREE.Group();
+  g.position.set(p.x,0,p.z);g.rotation.y=p.ry;G.scene.add(g);
+  const n=s.n,order=s.order;let prog=0,solved=false;
+  const parts=[],lit=[];
+  const gap=s.kind==="torch"?(G.W>15?2.2:.85):(s.kind==="book"?.19:.42);
+  const off=-(n-1)*gap/2;
+  if(s.kind!=="torch"){
+    const plate=box(n*gap+.36,s.kind==="book"?.78:.72,.09,mat(0x2b3037,{metalness:.5,roughness:.5}));
+    plate.position.set(0,1.4,.045);g.add(plate);screwsOn(g,n*gap+.36,.72,.09);
+    if(s.kind==="book"){plate.position.y=1.45;
+      const shelf=box(n*gap+.5,.06,.34,mat(0x3d2a16));shelf.position.set(0,1.06,.18);g.add(shelf);}
+  }
+  for(let i=0;i<n;i++){
+    const idx=i+1;let hotMesh,onOK,onBad;
+    if(s.kind==="torch"){
+      const st=new THREE.Group();st.position.set(off+i*gap,0,.5);g.add(st);
+      const pole=cyl(.05,.07,1.35,mat(0x3a3f47,{metalness:.6}),10);pole.position.y=.68;st.add(pole);
+      const bowl=cyl(.19,.11,.2,mat(0x6a5a3a,{metalness:.5,roughness:.6}),12);bowl.position.y=1.42;st.add(bowl);
+      const flame=new THREE.Mesh(new THREE.ConeGeometry(.13,.36,10),
+        new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0}));
+      flame.position.y=1.72;st.add(flame);
+      const lightP=new THREE.PointLight(0xffa040,0,4.5,2);lightP.position.set(off+i*gap,1.8,.5);g.add(lightP);
+      const plq=box(.3,.3,.03,mat(0x2a2f36,{metalness:.5}));plq.position.set(off+i*gap,.72,.58);g.add(plq);
+      const num=box(.25,.25,.01,new THREE.MeshBasicMaterial({map:labelTex(String(idx),"#11151a","#ffc86b")}));
+      num.position.set(off+i*gap,.72,.60);g.add(num);
+      hotMesh=bowl;lit.push({flame,lightP});
+      addCol(p.x+Math.sin(p.ry)*.5+Math.cos(p.ry)*(off+i*gap),
+             p.z+Math.cos(p.ry)*.5-Math.sin(p.ry)*(off+i*gap),.4,.4,1.5);
+    }else if(s.kind==="book"){
+      const h=.46+((i*37)%9)/30;
+      const bm=mat([0x6b3a2c,0x2f4a3a,0x3a3a5c,0x6b5a2c,0x53324a,0x2c4a5c][i%6],{roughness:.85});
+      const bk=box(.14,h,.3,bm);bk.position.set(off+i*gap,1.09+h/2,.2);g.add(bk);
+      const num=box(.08,.08,.005,new THREE.MeshBasicMaterial({map:labelTex(String(idx),"#d8cba6","#2a1e12")}));
+      num.position.set(off+i*gap,1.09+h/2,.352);g.add(num);
+      hotMesh=bk;lit.push({bk,base:.2});
+    }else{
+      const ring=cyl(.1,.1,.05,mat(0x3a3f47,{metalness:.7}),16);ring.rotation.x=Math.PI/2;
+      ring.position.set(off+i*gap,1.4,.09);g.add(ring);
+      const bt=cyl(.078,.078,.06,mat(0xb8452f,{roughness:.55}),16);bt.rotation.x=Math.PI/2;
+      bt.position.set(off+i*gap,1.4,.12);g.add(bt);
+      const num=box(.15,.15,.005,new THREE.MeshBasicMaterial({map:labelTex(String(idx),"#11151a","#ffc86b")}));
+      num.position.set(off+i*gap,1.14,.1);g.add(num);
+      hotMesh=bt;lit.push({bt,base:.12});
+    }
+    const o={spec:s,root:g,hot:[hotMesh],
+      label(){return (s.kind==="torch"?"Light brazier ":s.kind==="book"?"Pull book ":"Press button ")+idx;},
+      can(){return !solved;},
+      act(){
+        if(solved)return;
+        if(order[prog]===idx){
+          prog++;Audio_.beep(400+prog*70,.1,"triangle",.13);
+          activate(i,true);
+          if(prog>=order.length){solved=true;Audio_.unlock();
+            toast("The mechanism accepts the sequence.","good");grant(s);}
+        }else{
+          prog=0;Audio_.no();toast("Wrong. The sequence resets.","bad");resetAll();
+        }
+      },update(){}};
+    G.objs.push(o);hotify(o);
+  }
+  function activate(i,on){
+    const L=lit[i];
+    if(s.kind==="torch"){L.flame.material.opacity=on?.95:0;L.lightP.intensity=on?1.5:0;}
+    else if(s.kind==="book"){L.bk.position.z=on?.05:.2;}
+    else{L.bt.position.z=on?.085:.12;L.bt.material=on?emat(0x5fd08a,.55):mat(0xb8452f,{roughness:.55});}
+  }
+  function resetAll(){for(let i=0;i<n;i++)activate(i,false);}
+}
+
+/* ---------- PRESSURE PLATES ---------- */
+function bPlates(s){
+  const n=s.pts.length,order=s.order;let prog=0,solved=false;
+  const plates=s.pts.map((pt,i)=>{
+    const g=new THREE.Group();g.position.set(pt[0],0,pt[1]);G.scene.add(g);
+    const rim=box(1.35,.09,1.35,mat(0x3a3f47,{metalness:.6,roughness:.5}));rim.position.y=.045;g.add(rim);
+    const top=box(1.15,.09,1.15,new THREE.MeshStandardMaterial({
+      map:labelTex(String(i+1),"#4c525b","#e8eef6"),roughness:.75,metalness:.2}));
+    top.position.y=.1;g.add(top);
+    return{g,top,x:pt[0],z:pt[1],on:false,i};
+  });
+  const o={spec:s,root:null,hot:[],update(dt){
+    if(solved)return;
+    plates.forEach(pl=>{
+      const inside=Math.abs(G.pos.x-pl.x)<.72&&Math.abs(G.pos.z-pl.z)<.72&&G.pos.y<.55;
+      if(inside&&!pl.on){
+        pl.on=true;
+        if(order[prog]===pl.i){prog++;Audio_.beep(360+prog*80,.12,"triangle",.14);
+          pl.top.material=emat(0x5fd08a,.5);
+          if(prog>=order.length){solved=true;Audio_.unlock();
+            toast("The floor interlock rises.","good");grant(s);}
+        }else{ prog=0;Audio_.no();toast("Out of order. The stones sink again.","bad");
+          plates.forEach(q=>{q.top.material=new THREE.MeshStandardMaterial({
+            map:labelTex(String(q.i+1),"#4c525b","#e8eef6"),roughness:.75,metalness:.2});});}
+      }
+      if(!inside)pl.on=false;
+      pl.top.position.y=lerp(pl.top.position.y,inside?.04:.1,Math.min(1,dt*10));
+    });
+  }};
+  G.objs.push(o);
+}
+
+/* ---------- VALVE ---------- */
+function bValve(s){
+  const p=place(s),g=new THREE.Group();
+  g.position.set(p.x,p.y,p.z);g.rotation.y=p.ry;G.scene.add(g);
+  const im=mat(0x6a4a2c,{metalness:.7,roughness:.4});
+  const stem=cyl(.05,.05,.22,mat(0x3a3f47,{metalness:.7}),12);stem.rotation.x=Math.PI/2;
+  stem.position.z=.11;g.add(stem);
+  const wheel=new THREE.Group();wheel.position.z=.22;g.add(wheel);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(.26,.035,8,26),im);wheel.add(rim);
+  for(let i=0;i<4;i++){const sp=box(.5,.045,.045,im);sp.rotation.z=i*Math.PI/4;wheel.add(sp);}
+  const hub=cyl(.06,.06,.08,im,12);hub.rotation.x=Math.PI/2;wheel.add(hub);
+  const gauge=box(.28,.28,.04,mat(0x1a1e24));gauge.position.set(.5,0,.03);g.add(gauge);
+  const gtxt=box(.24,.24,.01,new THREE.MeshBasicMaterial({map:labelTex("0","#0a0e13","#3fd0c9")}));
+  gtxt.position.set(.5,0,.06);g.add(gtxt);
+  let turns=0,solved=false,targetRot=0;
+  const o={spec:s,root:g,hot:[rim,hub],
+    label(){return solved?(s.name||"Valve")+" — set":(s.name||"Valve")+"  ("+turns+" turns)";},
+    can(){return !solved;},
+    act(){ if(solved)return;turns++;targetRot-=TAU;
+      Audio_.beep(200+turns*14,.14,"sawtooth",.09,40);
+      gtxt.material.map=labelTex(String(turns),"#0a0e13","#3fd0c9");
+      gtxt.material.needsUpdate=true;
+      if(turns===s.turns){solved=true;Audio_.unlock();
+        toast("The line hisses and clears.","good");grant(s);}
+      else if(turns>s.turns){turns=0;targetRot=0;Audio_.no();
+        gtxt.material.map=labelTex("0","#0a0e13","#e0574f");gtxt.material.needsUpdate=true;
+        toast("Overturned. The valve springs back.","bad");}
+    },
+    update(dt){ wheel.rotation.z=lerp(wheel.rotation.z,targetRot,Math.min(1,dt*6)); }};
+  G.objs.push(o);hotify(o);
+}
+
+/* ---------- LASER + MIRRORS ---------- */
+function bLaser(s){
+  const cols=s.g[0],rows=s.g[1],cell=s.cell,ox=s.o[0],oz=s.o[1];
+  const gx=c=>ox+(c-(cols-1)/2)*cell, gz=r=>oz+(r-(rows-1)/2)*cell;
+  const grid={};let solved=false;
+  const root=new THREE.Group();G.scene.add(root);
+
+  /* bench */
+  const bench=box(cols*cell+.5,.34,rows*cell+.5,mat(0x1d2127,{metalness:.35,roughness:.75}));
+  bench.position.set(ox,.62,oz);root.add(bench);
+  const btop=box(cols*cell+.42,.05,rows*cell+.42,mat(0x333941,{metalness:.45,roughness:.55}));
+  btop.position.set(ox,.795,oz);root.add(btop);
+  for(let c=0;c<cols;c++)for(let r=0;r<rows;r++){
+    const d=box(cell*.86,.02,cell*.86,mat(0x1a1e23));d.position.set(gx(c),.825,gz(r));root.add(d);}
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(o=>{
+    const l=box(.12,.78,.12,mat(0x2a2f36,{metalness:.6}));
+    l.position.set(ox+o[0]*(cols*cell/2+.16),.39,oz+o[1]*(rows*cell/2+.16));root.add(l);});
+  addCol(ox,oz,cols*cell+.6,rows*cell+.6,.85);
+
+  /* emitter */
+  const em=new THREE.Group();em.position.set(gx(s.emit.c),.98,gz(s.emit.r));root.add(em);
+  const eb=cyl(.13,.15,.3,mat(0x4a5058,{metalness:.7,roughness:.35}),12);em.add(eb);
+  const lens=cyl(.08,.08,.06,emat(0xff4030,1.4),12);
+  lens.rotation.z=Math.PI/2;em.add(lens);
+  const dvec=[[1,0],[0,1],[-1,0],[0,-1]][s.emit.d];
+  lens.position.set(dvec[0]*.17,0,dvec[1]*.17);
+  if(s.emit.d%2===1){lens.rotation.z=0;lens.rotation.x=Math.PI/2;}
+
+  /* receiver */
+  const rc=new THREE.Group();rc.position.set(gx(s.recv.c),.98,gz(s.recv.r));root.add(rc);
+  const rb=cyl(.15,.17,.34,mat(0x4a5058,{metalness:.7,roughness:.35}),12);rc.add(rb);
+  const rdisc=cyl(.11,.11,.05,emat(0x333333,.3),14);rdisc.position.y=.18;rc.add(rdisc);
+
+  /* mirrors */
+  s.mirrors.forEach(m=>{
+    const g=new THREE.Group();g.position.set(gx(m[0]),.98,gz(m[1]));root.add(g);
+    const post=cyl(.05,.06,.24,mat(0x3a3f47,{metalness:.6}),10);post.position.y=-.06;g.add(post);
+    const pane=box(.5,.34,.03,new THREE.MeshStandardMaterial({color:0xcfe4f5,metalness:.3,
+      roughness:.1,emissive:0x283d52,emissiveIntensity:.7}));
+    pane.position.y=.1;g.add(pane);
+    const back=box(.54,.38,.05,mat(0x23272d,{metalness:.5}));back.position.set(0,.1,-.035);g.add(back);
+    [[0,.185],[0,-.185]].forEach(o=>{const e=box(.54,.035,.06,emat(0x8fd6ff,.75));
+      e.position.set(o[0],.1+o[1],-.01);g.add(e);});
+    const rec={c:m[0],r:m[1],o:m[2],g:g,pane:pane};
+    grid[m[0]+","+m[1]]=rec;
+    const o={spec:s,root:g,hot:[pane,back],
+      label(){return "Mirror  ["+(rec.o?"\\":"/")+"]  — flip it";},can(){return !solved;},
+      act(){ if(solved)return;rec.o=rec.o?0:1;Audio_.click();trace(); },
+      update(dt){ g.rotation.y=lerp(g.rotation.y,rec.o?-Math.PI/4:Math.PI/4,Math.min(1,dt*9)); }};
+    G.objs.push(o);hotify(o);
+  });
+
+  /* beam */
+  const beamG=new THREE.Group();root.add(beamG);
+  const beamM=new THREE.MeshBasicMaterial({color:0xff4030,transparent:true,opacity:.8});
+  const glowM=new THREE.MeshBasicMaterial({color:0xff8070,transparent:true,opacity:.18});
+  function trace(){
+    while(beamG.children.length)beamG.remove(beamG.children[0]);
+    let c=s.emit.c,r=s.emit.r,d=s.emit.d,hit=false,steps=0;
+    const pts=[[c,r]];
+    while(steps++<80){
+      const k=c+","+r,mr=grid[k];
+      if(mr&&!(c===s.emit.c&&r===s.emit.r)){
+        d = mr.o===0 ? [3,2,1,0][d] : [1,0,3,2][d];
+      }
+      if(c===s.recv.c&&r===s.recv.r){hit=true;break;}
+      const dv=[[1,0],[0,1],[-1,0],[0,-1]][d];
+      c+=dv[0];r+=dv[1];
+      if(c<0||r<0||c>=cols||r>=rows)break;
+      pts.push([c,r]);
+    }
+    for(let i=0;i<pts.length-1;i++){
+      const a=new THREE.Vector3(gx(pts[i][0]),.98,gz(pts[i][1])),
+            b=new THREE.Vector3(gx(pts[i+1][0]),.98,gz(pts[i+1][1]));
+      const len=a.distanceTo(b);
+      const cy=cyl(.014,.014,len,beamM,6),gl=cyl(.05,.05,len,glowM,6);
+      [cy,gl].forEach(mesh=>{
+        mesh.position.copy(a).lerp(b,.5);
+        mesh.lookAt(b);mesh.rotateX(Math.PI/2);beamG.add(mesh);});
+    }
+    rdisc.material.color.setHex(hit?0x5fd08a:0x333333);
+    rdisc.material.emissive.setHex(hit?0x5fd08a:0x222222);
+    rdisc.material.emissiveIntensity=hit?1.4:.3;
+    if(hit&&!solved){solved=true;Audio_.unlock();toast("The receiver lights. Interlock released.","good");grant(s);}
+  }
+  trace();
+  G.objs.push({spec:s,root:root,hot:[],update(dt){
+    beamM.opacity=.7+Math.sin(G.animT*9)*.14; }});
+}
+
+/* ---------- MODAL-BACKED DEVICES ---------- */
+function panelDevice(s,opts){
+  const d=device(s,opts.w,opts.h,.11,opts.col);
+  screwsOn(d.g,opts.w,opts.h,.11);
+  const face=box(opts.w-.14,opts.h-.16,.02,
+    new THREE.MeshStandardMaterial({color:opts.face==null?0x0d1116:opts.face,
+      emissive:opts.face==null?0x0d1116:opts.face,emissiveIntensity:.35,roughness:.5}));
+  face.position.z=.12;d.g.add(face);
+  /* little decoration lights */
+  const lamps=[];
+  for(let i=0;i<3;i++){const l=sph(.022,emat(0x552222,.6));
+    l.position.set(-opts.w/2+.09+i*.09,opts.h/2-.09,.115);d.g.add(l);lamps.push(l);}
+  return{g:d.g,face:face,lamps:lamps};
+}
+function bModalDevice(s,cfg){
+  const dv=panelDevice(s,cfg);
+  let solved=false;
+  const o={spec:s,root:dv.g,hot:[dv.face],
+    label(){return solved?cfg.name+" — released":(gateOK(s)?cfg.verb||("Use the "+cfg.name):"Locked");},
+    can(){return !solved;},
+    act(){
+      if(solved)return;
+      if(!gateOK(s)){Audio_.no();Modal.note("No response",s.lock||"Nothing happens.");return;}
+      Audio_.click();
+      cfg.open(()=>{ solved=true;Audio_.unlock();dv.face.material.color.setHex(0x1a3a28);
+        dv.face.material.emissive.setHex(0x1a3a28);
+        toast(cfg.win||"Released.","good");grant(s);Modal.close(); });
+    },
+    update(dt){ dv.lamps.forEach((l,i)=>{
+      const on=solved||(Math.sin(G.animT*2+i*1.7)>.3);
+      const col=solved?0x5fd08a:(gateOK(s)?0xf2a93b:0x552222);
+      l.material.color.setHex(col);l.material.emissive.setHex(col);
+      l.material.emissiveIntensity=on?1:.3;});}};
+  if(s.hide&&!G.flags.has(s.hide))dv.g.visible=false;
+  G.objs.push(o);hotify(o);
+  return o;
+}
+
+/* ============================================================
+   MODAL FRAMEWORK + PUZZLE UIs
+   ============================================================ */
+const Modal={
+  open:false,_timers:[],
+  show(title,build){
+    this.clear();this.open=true;
+    $("#mTitle").textContent=title;
+    const b=$("#mBody");b.innerHTML="";
+    build(b);
+    $("#modalWrap").classList.add("on");
+    releaseLook();
+  },
+  close(){
+    this.clear();this.open=false;
+    $("#modalWrap").classList.remove("on");$("#mBody").innerHTML="";
+    setTimeout(()=>{if(G.state==="play"&&!Modal.open)requestLook();},260);
+  },
+  clear(){this._timers.forEach(t=>clearTimeout(t));this._timers=[];},
+  later(fn,ms){const t=setTimeout(fn,ms);this._timers.push(t);return t;},
+  note(title,text){
+    this.show(title,b=>{
+      const p=el("div","noteBody");p.textContent=text;b.appendChild(p);
+      const r=el("div","mrow");const k=el("button","btn primary","Close");
+      k.onclick=()=>Modal.close();r.appendChild(k);b.appendChild(r);
+    });
+  },
+  sub(b,t){ if(t){const d=el("div","msub",t);b.appendChild(d);} }
+};
+$("#mClose").onclick=()=>Modal.close();
+$("#modalWrap").addEventListener("mousedown",e=>{if(e.target.id==="modalWrap")Modal.close();});
+
+/* ---------- KEYPAD ---------- */
+function pzKeypad(s,win){
+  Modal.show("Keypad",b=>{
+    Modal.sub(b,s.sub);
+    let cur="";
+    const disp=el("div","kpDisp");b.appendChild(disp);
+    const render=()=>{disp.textContent=cur.padEnd(s.code.length,"·");};
+    render();
+    const grid=el("div","kpGrid");b.appendChild(grid);
+    ["1","2","3","4","5","6","7","8","9","⌫","0","✓"].forEach(k=>{
+      const bt=el("button",null,k);
+      bt.onclick=()=>{
+        disp.classList.remove("err","ok");
+        if(k==="⌫"){cur=cur.slice(0,-1);Audio_.beep(300,.04,"square",.07);}
+        else if(k==="✓"){
+          if(cur===s.code){disp.classList.add("ok");render();Audio_.ok();Modal.later(win,420);}
+          else{disp.classList.add("err");Audio_.no();Modal.later(()=>{cur="";render();disp.classList.remove("err");},500);}
+          return;
+        }else if(cur.length<s.code.length){cur+=k;Audio_.beep(520+(+k||0)*22,.05,"square",.08);}
+        render();
+        if(cur.length===s.code.length&&cur===s.code){
+          disp.classList.add("ok");Audio_.ok();Modal.later(win,420);}
+      };
+      grid.appendChild(bt);
+    });
+  });
+}
+
+/* ---------- SYMBOL DIALS ---------- */
+function pzDials(s,win){
+  Modal.show("Ring Lock",b=>{
+    Modal.sub(b,s.sub);
+    const cur=s.target.map(()=>0);
+    const wrap=el("div","dials");b.appendChild(wrap);
+    const wins=[];
+    s.target.forEach((_,i)=>{
+      const d=el("div","dial");
+      const up=el("button",null,"▲"),w=el("div","win"),dn=el("button",null,"▼");
+      d.appendChild(up);d.appendChild(w);d.appendChild(dn);wrap.appendChild(d);wins.push(w);
+      const upd=()=>{w.textContent=s.syms[cur[i]];check();};
+      up.onclick=()=>{cur[i]=(cur[i]+1)%s.syms.length;Audio_.click();upd();};
+      dn.onclick=()=>{cur[i]=(cur[i]+s.syms.length-1)%s.syms.length;Audio_.click();upd();};
+      w.textContent=s.syms[cur[i]];
+    });
+    let done=false;
+    function check(){
+      if(done)return;
+      if(cur.every((v,i)=>v===s.target[i])){done=true;
+        wins.forEach(w=>w.style.color="var(--green)");Audio_.ok();Modal.later(win,450);}
+    }
+    const leg=el("div","legend","Marks on the rings:  "+s.syms.join("   "));b.appendChild(leg);
+  });
+}
+
+/* ---------- LIGHTS OUT ---------- */
+function pzLights(s,win){
+  const n=s.n,N=n*n;
+  const st=new Array(N).fill(1);
+  const flip=(a,i)=>{const r=(i/n)|0,c=i%n;
+    [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>{
+      const rr=r+d[0],cc=c+d[1];
+      if(rr>=0&&cc>=0&&rr<n&&cc<n)a[rr*n+cc]^=1;});};
+  (s.scr||[]).forEach(i=>flip(st,i));
+  Modal.show("Light Board",b=>{
+    Modal.sub(b,s.sub);
+    const g=el("div","tgrid");g.style.gridTemplateColumns="repeat("+n+",1fr)";
+    g.style.maxWidth=(n*68)+"px";b.appendChild(g);
+    const cells=[];
+    for(let i=0;i<N;i++){
+      const t=el("button","tile");t.style.width=t.style.height=(n>3?"58px":"66px");
+      t.onclick=()=>{flip(st,i);Audio_.beep(420,.05,"square",.09);draw();};
+      g.appendChild(t);cells.push(t);
+    }
+    let done=false;
+    function draw(){
+      cells.forEach((t,i)=>t.classList.toggle("on",!!st[i]));
+      if(!done&&st.every(v=>v===1)){done=true;Audio_.ok();Modal.later(win,450);}
+    }
+    draw();
+    b.appendChild(el("div","legend","Pressing a cell flips it and its four neighbours."));
+  });
+}
+
+/* ---------- SIMON ---------- */
+const SIMON=[{c:"#e0574f",f:262},{c:"#5fd08a",f:330},{c:"#5b8cff",f:392},
+             {c:"#f2a93b",f:494},{c:"#a98bff",f:587}];
+function pzSimon(s,win){
+  Modal.show("Sequence",b=>{
+    Modal.sub(b,s.sub);
+    const k=Math.min(s.len===5?5:4,SIMON.length);
+    const seq=[];for(let i=0;i<s.len;i++)seq.push((Math.random()*k)|0);
+    let round=1,idx=0,playing=false;
+    const status=el("div","readout","Watch");b.appendChild(status);
+    const g=el("div","tgrid");g.style.gridTemplateColumns="repeat("+k+",1fr)";
+    g.style.maxWidth=(k*82)+"px";b.appendChild(g);
+    const cells=SIMON.slice(0,k).map((sm,i)=>{
+      const t=el("button","tile");t.style.height="74px";t.style.background=sm.c;
+      t.style.color=sm.c;t.style.opacity=".5";
+      t.onclick=()=>{ if(playing)return;
+        Audio_.beep(sm.f,.16,"triangle",.15);pulse(i);
+        if(seq[idx]===i){ idx++;
+          if(idx>=round){ round++;
+            if(round>s.len){status.textContent="Accepted";Audio_.ok();playing=true;Modal.later(win,500);return;}
+            status.textContent="Correct — round "+round+" of "+s.len;
+            Modal.later(play,700);}
+        }else{ status.textContent="Wrong. Watch again.";Audio_.no();round=1;Modal.later(play,900);}
+      };
+      g.appendChild(t);return t;});
+    function pulse(i){cells[i].style.opacity="1";cells[i].classList.add("lit");
+      Modal.later(()=>{cells[i].style.opacity=".5";cells[i].classList.remove("lit");},240);}
+    function play(){ playing=true;idx=0;status.textContent="Watch — round "+round+" of "+s.len;
+      for(let i=0;i<round;i++){
+        Modal.later(()=>{const v=seq[i];pulse(v);Audio_.beep(SIMON[v].f,.22,"triangle",.14);},i*520+400);}
+      Modal.later(()=>{playing=false;status.textContent="Your turn";},round*520+420);
+    }
+    b.appendChild(el("div","legend","Watch the run, then repeat it. One extra each round."));
+    Modal.later(play,300);
+  });
+}
+
+/* ---------- MEMORY GRID ---------- */
+function pzMemory(s,win){
+  Modal.show("Pattern",b=>{
+    Modal.sub(b,s.sub);
+    const n=s.n,N=n*n;let round=1,pattern=[],picked=[],showing=false;
+    const status=el("div","readout","Watch");b.appendChild(status);
+    const g=el("div","tgrid");g.style.gridTemplateColumns="repeat("+n+",1fr)";
+    g.style.maxWidth=(n*66)+"px";b.appendChild(g);
+    const cells=[];
+    for(let i=0;i<N;i++){const t=el("button","tile");t.style.width=t.style.height="58px";
+      t.onclick=()=>{
+        if(showing||picked.indexOf(i)>=0)return;
+        if(pattern.indexOf(i)>=0){ picked.push(i);t.classList.add("on");
+          Audio_.beep(600+picked.length*40,.08,"triangle",.12);
+          if(picked.length===pattern.length){ round++;
+            if(round>s.rounds){status.textContent="Accepted";Audio_.ok();showing=true;Modal.later(win,520);return;}
+            status.textContent="Correct — round "+round+" of "+s.rounds;Modal.later(next,800);}
+        }else{ Audio_.no();status.textContent="Wrong. Watch again.";round=1;Modal.later(next,900);}
+      };
+      g.appendChild(t);cells.push(t);}
+    function next(){
+      showing=true;picked=[];pattern=[];
+      const count=Math.min(N-1,round+2);
+      const pool=[...Array(N).keys()];
+      for(let i=0;i<count;i++)pattern.push(pool.splice((Math.random()*pool.length)|0,1)[0]);
+      cells.forEach(t=>t.classList.remove("on"));
+      status.textContent="Watch — round "+round+" of "+s.rounds;
+      Modal.later(()=>{pattern.forEach(i=>cells[i].classList.add("on"));},420);
+      Modal.later(()=>{cells.forEach(t=>t.classList.remove("on"));
+        status.textContent="Now set it back";showing=false;},420+1100+round*120);
+    }
+    b.appendChild(el("div","legend","Click the cells that were lit. Order does not matter."));
+    Modal.later(next,250);
+  });
+}
+
+/* ---------- PIPES ---------- */
+function pipeSVG(mask,ok){
+  const col=ok?"#3fd0c9":"#8b97a6";
+  let d="";
+  const C=28;
+  if(mask&1)d+=`M${C} ${C}L${C} 2 `;
+  if(mask&2)d+=`M${C} ${C}L${C*2-2} ${C} `;
+  if(mask&4)d+=`M${C} ${C}L${C} ${C*2-2} `;
+  if(mask&8)d+=`M${C} ${C}L2 ${C} `;
+  return `<svg width="56" height="56" viewBox="0 0 56 56"><path d="${d}" stroke="${col}" stroke-width="9"
+    stroke-linecap="round" fill="none"/><circle cx="28" cy="28" r="5.5" fill="${ok?"#3fd0c9":"#5c6774"}"/></svg>`;
+}
+function pzPipes(s,win){
+  const n=s.n,mid=(n/2)|0,rnd=mulberry(s.seed||7);
+  const masks=new Array(n*n).fill(0);
+  /* carve a path from (0,mid) to (n-1,mid) */
+  const visited=new Array(n*n).fill(false);
+  const path=[];
+  (function dfs(c,r){
+    visited[r*n+c]=true;path.push([c,r]);
+    if(c===n-1&&r===mid)return true;
+    const dirs=[[1,0],[0,1],[0,-1],[-1,0]];
+    for(let i=dirs.length-1;i>0;i--){const j=(rnd()*(i+1))|0;const t=dirs[i];dirs[i]=dirs[j];dirs[j]=t;}
+    if(c<n-1&&rnd()<.75)dirs.unshift([1,0]);
+    for(const d of dirs){
+      const cc=c+d[0],rr=r+d[1];
+      if(cc<0||rr<0||cc>=n||rr>=n||visited[rr*n+cc])continue;
+      if(dfs(cc,rr))return true;
+    }
+    path.pop();visited[r*n+c]=false;return false;
+  })(0,mid);
+  const BIT={"0,-1":1,"1,0":2,"0,1":4,"-1,0":8};
+  masks[mid*n+0]|=8;
+  masks[mid*n+(n-1)]|=2;
+  for(let i=0;i<path.length-1;i++){
+    const a=path[i],b=path[i+1],dx=b[0]-a[0],dy=b[1]-a[1];
+    masks[a[1]*n+a[0]]|=BIT[dx+","+dy];
+    masks[b[1]*n+b[0]]|=BIT[(-dx)+","+(-dy)];
+  }
+  for(let i=0;i<n*n;i++) if(!masks[i]) masks[i]=[3,6,12,9,5,10][(rnd()*6)|0];
+  const rot=m=>((m<<1)|(m>>3))&15;
+  const state=masks.map(m=>{let x=m,k=(rnd()*4)|0;while(k--)x=rot(x);return x;});
+  /* make sure it isn't already solved */
+  Modal.show("Conduit",b=>{
+    Modal.sub(b,s.sub);
+    const g=el("div","tgrid");g.style.gridTemplateColumns="repeat("+n+",1fr)";
+    g.style.maxWidth=(n*62)+"px";b.appendChild(g);
+    const cells=[];
+    for(let i=0;i<n*n;i++){
+      const t=el("button","tile");t.style.width=t.style.height="56px";t.style.padding="0";
+      t.onclick=()=>{state[i]=rot(state[i]);Audio_.beep(340,.05,"square",.08);draw();};
+      g.appendChild(t);cells.push(t);
+    }
+    let done=false;
+    function flow(){
+      const conn=new Array(n*n).fill(false);
+      const startI=mid*n+0;
+      if(!(state[startI]&8))return conn;
+      const q=[startI];conn[startI]=true;
+      const D=[[0,-1,1,4],[1,0,2,8],[0,1,4,1],[-1,0,8,2]];
+      while(q.length){
+        const i=q.pop(),c=i%n,r=(i/n)|0;
+        for(const d of D){
+          if(!(state[i]&d[2]))continue;
+          const cc=c+d[0],rr=r+d[1];
+          if(cc<0||rr<0||cc>=n||rr>=n)continue;
+          const j=rr*n+cc;
+          if(conn[j]||!(state[j]&d[3]))continue;
+          conn[j]=true;q.push(j);
+        }
+      }
+      return conn;
+    }
+    function draw(){
+      const conn=flow();
+      cells.forEach((t,i)=>{t.innerHTML=pipeSVG(state[i],conn[i]);
+        t.style.borderColor=conn[i]?"#3fd0c9":"";});
+      const endI=mid*n+(n-1);
+      if(!done&&conn[endI]&&(state[endI]&2)){done=true;Audio_.ok();Modal.later(win,500);}
+    }
+    draw();
+    b.appendChild(el("div","legend","◀ inlet on the left of row "+(mid+1)+"   ·   outlet on the right ▶"));
+  });
+}
+
+/* ---------- SLIDING TILE ---------- */
+function pzSlide(s,win){
+  const rnd=mulberry(s.seed||5);
+  let st=[1,2,3,4,5,6,7,8,0];
+  const idx0=()=>st.indexOf(0);
+  const moves=i=>{const r=(i/3)|0,c=i%3,out=[];
+    if(r>0)out.push(i-3);if(r<2)out.push(i+3);if(c>0)out.push(i-1);if(c<2)out.push(i+1);return out;};
+  for(let k=0;k<160;k++){const z=idx0(),m=moves(z);const p=m[(rnd()*m.length)|0];
+    st[z]=st[p];st[p]=0;}
+  if(st.every((v,i)=>v===(i===8?0:i+1))){const z=idx0();const p=moves(z)[0];st[z]=st[p];st[p]=0;}
+  Modal.show("Index Tile",b=>{
+    Modal.sub(b,s.sub);
+    const g=el("div","tgrid");g.style.gridTemplateColumns="repeat(3,1fr)";
+    g.style.maxWidth="228px";b.appendChild(g);
+    const cells=[];
+    for(let i=0;i<9;i++){const t=el("button","tile");t.style.width=t.style.height="70px";
+      t.style.fontSize="26px";t.onclick=()=>{
+        const z=idx0();if(moves(z).indexOf(i)<0){Audio_.beep(180,.06,"square",.06);return;}
+        st[z]=st[i];st[i]=0;Audio_.beep(460,.05,"square",.08);draw();};
+      g.appendChild(t);cells.push(t);}
+    let done=false;
+    function draw(){
+      cells.forEach((t,i)=>{ const v=st[i];
+        t.textContent=v||"";t.style.visibility=v?"visible":"hidden";
+        t.classList.toggle("on",v===i+1);});
+      if(!done&&st.every((v,i)=>v===(i===8?0:i+1))){done=true;Audio_.ok();Modal.later(win,500);}
+    }
+    draw();
+    b.appendChild(el("div","legend","Click a tile beside the gap to slide it."));
+  });
+}
+
+/* ---------- LETTER LOCK ---------- */
+function pzWord(s,win){
+  const A="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  Modal.show("Letter Lock",b=>{
+    Modal.sub(b,s.sub);
+    const cur=s.answer.split("").map(()=>0);
+    const wrap=el("div","letters");b.appendChild(wrap);
+    const chs=[];
+    cur.forEach((_,i)=>{
+      const col=el("div","lcol");
+      const up=el("button",null,"▲"),ch=el("div","lch"),dn=el("button",null,"▼");
+      col.appendChild(up);col.appendChild(ch);col.appendChild(dn);wrap.appendChild(col);chs.push(ch);
+      const upd=()=>{ch.textContent=A[cur[i]];check();};
+      up.onclick=()=>{cur[i]=(cur[i]+1)%26;Audio_.beep(500,.04,"square",.07);upd();};
+      dn.onclick=()=>{cur[i]=(cur[i]+25)%26;Audio_.beep(430,.04,"square",.07);upd();};
+      ch.textContent="A";
+    });
+    let done=false;
+    function check(){
+      const w=cur.map(i=>A[i]).join("");
+      if(!done&&w===s.answer){done=true;chs.forEach(c=>c.style.color="var(--green)");
+        Audio_.ok();Modal.later(win,500);}
+    }
+    b.appendChild(el("div","legend",s.answer.length+" letters."));
+  });
+}
+
+/* ---------- WIRES ---------- */
+function pzWires(s,win){
+  Modal.show("Terminal Block",b=>{
+    Modal.sub(b,s.sub);
+    const picked={};let sel=null;
+    const row=el("div");row.style.cssText="display:flex;gap:18px;justify-content:center";
+    const L=el("div");L.style.cssText="display:flex;flex-direction:column;gap:10px;flex:1";
+    const R=el("div");R.style.cssText="display:flex;flex-direction:column;gap:10px;flex:1";
+    row.appendChild(L);row.appendChild(R);b.appendChild(row);
+    const lb=[],rb=[];
+    s.left.forEach((it,i)=>{
+      const t=el("button","choice");
+      const dot=el("span");dot.style.cssText="width:14px;height:14px;border-radius:4px;background:"+it.c+
+        ";box-shadow:0 0 10px "+it.c;
+      t.appendChild(dot);t.appendChild(el("span",null,it.n));
+      const tag=el("span","w","—");t.appendChild(tag);
+      t.onclick=()=>{sel=i;lb.forEach(x=>x.classList.remove("sel"));t.classList.add("sel");Audio_.click();};
+      L.appendChild(t);lb.push(t);t._tag=tag;
+    });
+    s.right.forEach((nm,j)=>{
+      const t=el("button","choice");
+      t.appendChild(el("span",null,"socket "+nm));
+      const tag=el("span","w","open");t.appendChild(tag);
+      t.onclick=()=>{
+        if(sel==null){Audio_.no();return;}
+        Object.keys(picked).forEach(k=>{if(picked[k]===j)delete picked[k];});
+        picked[sel]=j;Audio_.beep(560,.07,"triangle",.11);sel=null;
+        lb.forEach(x=>x.classList.remove("sel"));draw();
+      };
+      R.appendChild(t);rb.push(t);t._tag=tag;
+    });
+    let done=false;
+    function draw(){
+      lb.forEach((t,i)=>{const j=picked[i];
+        t._tag.textContent=j==null?"—":("→ "+s.right[j]);});
+      rb.forEach((t,j)=>{const k=Object.keys(picked).find(i=>picked[i]===j);
+        t._tag.textContent=k==null?"open":s.left[k].n;
+        t.style.borderColor=k==null?"":s.left[k].c;});
+      if(!done&&s.map.every((j,i)=>picked[i]===j)){done=true;Audio_.ok();Modal.later(win,500);}
+    }
+    draw();
+    b.appendChild(el("div","legend","Click a lead, then click the socket it belongs in."));
+  });
+}
+
+/* ---------- SCALE ---------- */
+function pzWeigh(s,win){
+  Modal.show("The Scale",b=>{
+    Modal.sub(b,s.sub);
+    const on=s.items.map(()=>false);
+    const read=el("div","readout");b.appendChild(read);
+    const list=el("div","choices");b.appendChild(list);
+    let done=false;
+    const btns=s.items.map((it,i)=>{
+      const t=el("button","choice");
+      t.appendChild(el("span",null,it.n));
+      const w=el("span","w",it.w+" units");t.appendChild(w);
+      t.onclick=()=>{ if(done)return;on[i]=!on[i];t.classList.toggle("sel",on[i]);
+        Audio_.beep(on[i]?520:360,.06,"triangle",.1);draw();};
+      list.appendChild(t);return t;});
+    function draw(){
+      const sum=s.items.reduce((a,it,i)=>a+(on[i]?it.w:0),0);
+      read.textContent=sum+"  /  "+s.target;
+      read.style.color=sum===s.target?"var(--green)":(sum>s.target?"var(--red)":"var(--teal)");
+      if(!done&&sum===s.target){done=true;Audio_.ok();Modal.later(win,600);}
+    }
+    draw();
+    b.appendChild(el("div","legend","Put bottles on the pan until it reads exactly "+s.target+"."));
+  });
+}
+
+/* ---------- MULTIPLE CHOICE ---------- */
+function pzChoice(s,win){
+  Modal.show("Terminal",b=>{
+    Modal.sub(b,s.sub);
+    const q=el("div","readout");q.style.fontSize="15px";q.style.fontFamily="inherit";
+    q.textContent=s.q;b.appendChild(q);
+    const list=el("div","choices");b.appendChild(list);
+    let done=false;
+    s.opts.forEach((o,i)=>{
+      const t=el("button","choice",o);
+      t.onclick=()=>{ if(done)return;
+        if(i===s.ans){done=true;t.classList.add("sel");Audio_.ok();Modal.later(win,520);}
+        else{Audio_.no();t.style.borderColor="var(--red)";t.disabled=true;t.style.opacity=".4";}};
+      list.appendChild(t);
+    });
+  });
+}
+
+/* ============================================================
+   OBJECT DISPATCH
+   ============================================================ */
+const BUILD={
+  note:bNote, key:bKey, gems:bGems, switch:bSwitch, container:bContainer,
+  painting:bPainting, levers:bLevers, btnseq:bBtnSeq, plates:bPlates,
+  valve:bValve, laser:bLaser, prop:buildProp,
+  keypad :s=>bModalDevice(s,{w:.64,h:.84,name:"keypad", verb:"Use the keypad",
+            win:"Code accepted.",     open:w=>pzKeypad(s,w)}),
+  dials  :s=>bModalDevice(s,{w:.92,h:.62,name:"ring lock",verb:"Turn the rings",
+            win:"The rings align.",   open:w=>pzDials(s,w)}),
+  lights :s=>bModalDevice(s,{w:.86,h:.86,name:"light board",verb:"Use the light board",
+            win:"Every cell burns.",  open:w=>pzLights(s,w)}),
+  simon  :s=>bModalDevice(s,{w:.9,h:.7, name:"sequencer", verb:"Start the sequence",
+            win:"Sequence accepted.", open:w=>pzSimon(s,w)}),
+  memory :s=>bModalDevice(s,{w:.88,h:.88,name:"chart panel",verb:"Read the chart",
+            win:"Pattern matched.",   open:w=>pzMemory(s,w)}),
+  pipes  :s=>bModalDevice(s,{w:.94,h:.94,name:"conduit",   verb:"Route the conduit",
+            win:"The line runs.",     open:w=>pzPipes(s,w)}),
+  slide  :s=>bModalDevice(s,{w:.82,h:.82,name:"index tile",verb:"Sort the tile",
+            win:"The index is whole.",open:w=>pzSlide(s,w)}),
+  word   :s=>bModalDevice(s,{w:1.0,h:.6, name:"letter lock",verb:"Turn the wheels",
+            win:"The word is right.", open:w=>pzWord(s,w)}),
+  wires  :s=>bModalDevice(s,{w:.9,h:.8, name:"terminal block",verb:"Rewire the block",
+            win:"Circuit closed.",    open:w=>pzWires(s,w)}),
+  weigh  :s=>bModalDevice(s,{w:.9,h:.66,name:"scale",     verb:"Load the scale",
+            win:"The pan settles.",   open:w=>pzWeigh(s,w)}),
+  choice :s=>bModalDevice(s,{w:.9,h:.72,name:"terminal",  verb:"Answer the terminal",
+            win:"Query answered.",    open:w=>pzChoice(s,w)})
+};
+
+/* ============================================================
+   LEVEL LOAD
+   ============================================================ */
+function clearScene(){
+  if(G.scene){
+    G.scene.traverse(o=>{ if(o.geometry&&o.userData.o===undefined)o.geometry.dispose(); });
+    if(G.cam&&G.cam.parent)G.cam.parent.remove(G.cam);
+  }
+  G.scene=new THREE.Scene();
+  G.objs=[];G.hot=[];G.cols=[];G.lights=[];G.inv=[];
+  $("#inv").innerHTML="";
+}
+function loadLevel(i){
+  Modal.close();closeHints();
+  G.idx=i;G.lvl=LEVELS[i];G.flags=new Set();G.time=0;G.hints=0;G.started=false;
+  G.W=G.lvl.sz[0];G.D=G.lvl.sz[1];G.H=3.4;
+  clearScene();
+  buildRoom(G.lvl.th);
+  G.lvl.objs.forEach(s=>{ const f=BUILD[s.t]; if(f)f(s); });
+  G.door=buildDoor(G.lvl.door);
+  revealHidden();
+  buildViewmodel();
+
+  /* spawn: standing just inside the door, looking into the room */
+  const d=G.lvl.door;
+  const dp=place({w:d.w,u:d.u,y:0});
+  const inward={n:[0,1],s:[0,-1],w:[1,0],e:[-1,0]}[d.w];
+  G.pos=new THREE.Vector3(dp.x+inward[0]*2.5,EYE,dp.z+inward[1]*2.5);
+  G.pos.x=clamp(G.pos.x,-G.W/2+.6,G.W/2-.6);G.pos.z=clamp(G.pos.z,-G.D/2+.6,G.D/2-.6);
+  const sp=collide(G.pos.x,G.pos.z,0);G.pos.x=sp[0];G.pos.z=sp[1];
+  G.vel=new THREE.Vector3();G.onGround=true;
+  G.yaw=Math.atan2(-inward[0],-inward[1]);G.pitch=0;
+  G.state="play";
+  $("#hud").classList.add("on");
+  $$(".screen").forEach(s=>s.classList.remove("on"));
+  $("#lvVal").textContent=(i+1);
+  $("#parVal").textContent=fmtTime(G.lvl.par);
+  UI.objective();UI.hints();
+  $("#touch").classList.toggle("on",IS_TOUCH);
+  toast("Room "+(i+1)+" — "+G.lvl.name);
+  if(!IS_TOUCH)$("#lockmsg").classList.add("on");
+}
+
+/* ---------- viewmodel hands ---------- */
+function buildViewmodel(){
+  const a=AV(Save.d.avatar);
+  if(G.vm&&G.vm.parent)G.vm.parent.remove(G.vm);
+  const vm=new THREE.Group();G.cam.add(vm);G.scene.add(G.cam);
+  const sleeve=mat(a.suit,{roughness:.8}),glove=mat(a.trim,{roughness:.6,metalness:.2});
+  [[-1],[1]].forEach(sd=>{
+    const arm=new THREE.Group();
+    arm.position.set(sd[0]*.30,-.30,-.55);
+    arm.rotation.set(-.10,sd[0]*.30,sd[0]*.26);
+    arm.scale.setScalar(.60);
+    const s=box(.14,.14,.46,sleeve);s.position.z=.26;arm.add(s);
+    const cuff=box(.16,.16,.07,glove);cuff.position.z=.03;arm.add(cuff);
+    const g=box(.15,.115,.21,glove);g.position.z=-.10;arm.add(g);
+    const th=box(.055,.07,.11,glove);th.position.set(-sd[0]*.075,-.015,-.15);arm.add(th);
+    vm.add(arm);
+  });
+  G.vm=vm;
+}
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+const IS_TOUCH=matchMedia("(hover:none)").matches||("ontouchstart" in window&&innerWidth<1100);
+addEventListener("keydown",e=>{
+  const k=e.key.toLowerCase();
+  G.keys[k]=true;
+  if(G.state!=="play")return;
+  if(k==="e"){e.preventDefault();tryInteract();}
+  if(k==="h"){e.preventDefault();toggleHints();}
+  if(k==="r"&&!Modal.open){e.preventDefault();loadLevel(G.idx);}
+  if(k==="escape"){e.preventDefault(); if(Modal.open)Modal.close(); else togglePause();}
+  if(k===" ")e.preventDefault();
+});
+addEventListener("keyup",e=>{G.keys[e.key.toLowerCase()]=false;});
+addEventListener("blur",()=>{G.keys={};});
+
+let locked=false;
+function requestLook(){ if(IS_TOUCH||locked||G.state!=="play")return;
+  const c=$("#gl");
+  try{ const r=c.requestPointerLock&&c.requestPointerLock(); if(r&&r.catch)r.catch(()=>{}); }catch(e){} }
+function releaseLook(){ if(document.pointerLockElement)document.exitPointerLock(); }
+document.addEventListener("pointerlockchange",()=>{
+  locked=document.pointerLockElement===$("#gl");
+  $("#lockmsg").classList.toggle("on",!locked&&G.state==="play"&&!Modal.open&&!IS_TOUCH);
+});
+addEventListener("mousemove",e=>{
+  if(!locked)return;
+  G.yaw-=e.movementX*0.0022;
+  G.pitch=clamp(G.pitch-e.movementY*0.0022,-1.45,1.45);
+});
+$("#gl").addEventListener("mousedown",e=>{
+  Audio_.init();
+  if(G.state!=="play"||Modal.open)return;
+  if(!locked&&!IS_TOUCH){requestLook();return;}
+  if(e.button===0)tryInteract();
+});
+$("#lockClick").onclick=()=>{Audio_.init();requestLook();};
+
+/* touch */
+let stickV={x:0,y:0},stickId=null,lookId=null,lastLook=null;
+if(IS_TOUCH){
+  const st=$("#stick"),nub=$("#stick i");
+  const setNub=(dx,dy)=>{nub.style.transform="translate("+dx*34+"px,"+dy*34+"px)";};
+  st.addEventListener("touchstart",e=>{e.preventDefault();stickId=e.changedTouches[0].identifier;});
+  addEventListener("touchmove",e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier===stickId){
+        const r=st.getBoundingClientRect();
+        let dx=(t.clientX-(r.left+r.width/2))/(r.width/2),dy=(t.clientY-(r.top+r.height/2))/(r.height/2);
+        const m=Math.hypot(dx,dy);if(m>1){dx/=m;dy/=m;}
+        stickV={x:dx,y:dy};setNub(dx,dy);
+      }else if(t.identifier===lookId&&lastLook){
+        G.yaw-=(t.clientX-lastLook.x)*.005;
+        G.pitch=clamp(G.pitch-(t.clientY-lastLook.y)*.005,-1.45,1.45);
+        lastLook={x:t.clientX,y:t.clientY};
+      }
+    }
+  },{passive:false});
+  addEventListener("touchstart",e=>{
+    Audio_.init();
+    for(const t of e.changedTouches){
+      if(t.identifier===stickId)continue;
+      if(lookId===null&&t.clientX>innerWidth*.35&&t.clientY>90){
+        lookId=t.identifier;lastLook={x:t.clientX,y:t.clientY};}
+    }
+  },{passive:true});
+  const end=e=>{for(const t of e.changedTouches){
+    if(t.identifier===stickId){stickId=null;stickV={x:0,y:0};setNub(0,0);}
+    if(t.identifier===lookId){lookId=null;lastLook=null;}}};
+  addEventListener("touchend",end);addEventListener("touchcancel",end);
+  $("#tapAct").addEventListener("touchstart",e=>{e.preventDefault();e.stopPropagation();tryInteract();});
+  $("#tapJmp").addEventListener("touchstart",e=>{e.preventDefault();e.stopPropagation();
+    if(G.onGround){G.vel.y=5.9;G.onGround=false;}});
+}
+
+/* ============================================================
+   PLAYER
+   ============================================================ */
+function supportHeight(x,z){
+  let h=0;
+  for(const c of G.cols){
+    if(c.top>=99)continue;
+    if(x>c.x0-PRAD*.4&&x<c.x1+PRAD*.4&&z>c.z0-PRAD*.4&&z<c.z1+PRAD*.4)h=Math.max(h,c.top);
+  }
+  return h;
+}
+function collide(nx,nz,feet){
+  let x=nx,z=nz;
+  for(const c of G.cols){
+    if(c.top<feet+0.02)continue;               /* low enough to stand on */
+    if(x+PRAD<=c.x0||x-PRAD>=c.x1||z+PRAD<=c.z0||z-PRAD>=c.z1)continue;
+    const px0=(c.x1+PRAD)-x, px1=x-(c.x0-PRAD);
+    const pz0=(c.z1+PRAD)-z, pz1=z-(c.z0-PRAD);
+    const m=Math.min(px0,px1,pz0,pz1);
+    if(m===px0)x=c.x1+PRAD; else if(m===px1)x=c.x0-PRAD;
+    else if(m===pz0)z=c.z1+PRAD; else z=c.z0-PRAD;
+  }
+  return[x,z];
+}
+function updatePlayer(dt){
+  const K=G.keys;
+  let fx=0,fz=0;
+  if(K["w"]||K["arrowup"])fz+=1;
+  if(K["s"]||K["arrowdown"])fz-=1;
+  if(K["a"]||K["arrowleft"])fx-=1;
+  if(K["d"]||K["arrowright"])fx+=1;
+  if(IS_TOUCH){fx+=stickV.x;fz-=stickV.y;}
+  const m=Math.hypot(fx,fz);if(m>1){fx/=m;fz/=m;}
+  const sprint=(K["shift"]?1.65:1);
+  const spd=3.05*sprint;
+  const sy=Math.sin(G.yaw),cy=Math.cos(G.yaw);
+  const wx=(fx*cy - fz*sy)*spd, wz=(-fx*sy - fz*cy)*spd;
+
+  G.vel.x=lerp(G.vel.x,wx,Math.min(1,dt*14));
+  G.vel.z=lerp(G.vel.z,wz,Math.min(1,dt*14));
+
+  if((K[" "]||K["spacebar"])&&G.onGround){G.vel.y=5.9;G.onGround=false;Audio_.beep(300,.07,"sine",.06);}
+  G.vel.y-=14.5*dt;
+
+  const feet=G.pos.y-EYE;
+  const [nx,nz]=collide(G.pos.x+G.vel.x*dt,G.pos.z+G.vel.z*dt,feet);
+  G.pos.x=nx;G.pos.z=nz;
+  let ny=G.pos.y+G.vel.y*dt;
+  const ground=supportHeight(G.pos.x,G.pos.z)+EYE;
+  if(ny<=ground){ny=ground;G.vel.y=0;
+    if(!G.onGround){Audio_.thud();}G.onGround=true;}
+  else G.onGround=false;
+  G.pos.y=ny;
+  G.pos.x=clamp(G.pos.x,-G.W/2+PRAD,G.W/2-PRAD);
+  G.pos.z=clamp(G.pos.z,-G.D/2+PRAD,G.D/2-PRAD);
+
+  /* head bob */
+  const moving=Math.hypot(G.vel.x,G.vel.z)>.6&&G.onGround;
+  G.bob=(G.bob||0)+(moving?dt*(9*sprint):0);
+  const bobY=moving?Math.sin(G.bob)*.035:0;
+  G.cam.position.set(G.pos.x,G.pos.y+bobY,G.pos.z);
+  G.cam.rotation.set(0,0,0);
+  G.cam.rotateY(G.yaw);G.cam.rotateX(G.pitch);
+  if(G.vm)G.vm.rotation.z=lerp(G.vm.rotation.z||0,moving?Math.sin(G.bob)*.05:0,Math.min(1,dt*6));
+}
+
+/* ============================================================
+   INTERACTION
+   ============================================================ */
+const RAY=new THREE.Raycaster();RAY.far=3.4;
+let focused=null;
+function pickTarget(){
+  RAY.setFromCamera({x:0,y:0},G.cam);
+  const hits=RAY.intersectObjects(G.hot,false);
+  for(const h of hits){
+    const o=h.object.userData.o;
+    if(!o)continue;
+    let vis=true,p=h.object;
+    while(p){ if(p.visible===false){vis=false;break;} p=p.parent; }
+    if(!vis)continue;
+    return o;
+  }
+  return null;
+}
+function tryInteract(){
+  if(Modal.open||G.state!=="play")return;
+  const o=focused;
+  if(!o)return;
+  if(o.can&&!o.can())return;
+  o.act&&o.act();
+}
+
+/* ============================================================
+   HUD BITS
+   ============================================================ */
+function toast(msg,kind){
+  const t=el("div","toast"+(kind?" "+kind:""),msg);
+  $("#toasts").appendChild(t);
+  setTimeout(()=>{t.style.transition=".35s";t.style.opacity="0";t.style.transform="translateY(-10px)";},2100);
+  setTimeout(()=>t.remove(),2600);
+}
+function addItem(name,col){
+  if(G.inv.some(i=>i.name===name))return;
+  G.inv.push({name});
+  const d=el("div","item");const dot=el("i","d");dot.style.color=col||"#f2a93b";
+  d.appendChild(dot);d.appendChild(el("span",null,name));
+  d.dataset.k=name;$("#inv").appendChild(d);
+}
+function setInvCount(name,txt,col){
+  let d=$('#inv .item[data-k="'+name+'"]');
+  if(!d){ d=el("div","item");const dot=el("i","d");dot.style.color=col||"#f2a93b";
+    d.appendChild(dot);d.appendChild(el("span"));d.dataset.k=name;$("#inv").appendChild(d);}
+  d.lastChild.textContent=name+" "+txt;
+}
+
+const UI={
+  syncCoins(){ $("#coinVal").textContent=Save.d.coins;
+    $$(".coinMirror").forEach(e=>e.textContent=Save.d.coins); },
+  objective(){
+    const L=G.lvl;if(!L)return;
+    const need=L.door.req,got=need.filter(f=>G.flags.has(f)).length;
+    $("#objText").innerHTML=L.obj+"<br><span style='color:var(--dim)'>Seals released: "+
+      got+" / "+need.length+"</span>";
+  },
+  hints(){
+    const L=G.lvl,list=$("#hintList");list.innerHTML="";
+    L.hints.forEach((h,i)=>{
+      if(i<G.hints){
+        const d=el("div","hint");d.appendChild(el("div","lbl","Hint "+(i+1)));
+        d.appendChild(el("div",null,h));list.appendChild(d);
+      }else if(i===G.hints){
+        const d=el("div","hint locked");
+        d.appendChild(el("span",null,"Hint "+(i+1)+" — costs 5 coins"));
+        const b=el("button","btn sm","Reveal");
+        b.onclick=()=>{G.hints++;Audio_.click();UI.hints();};
+        d.appendChild(b);list.appendChild(d);
+      }else{
+        const d=el("div","hint locked");
+        d.appendChild(el("span",null,"Hint "+(i+1)+" — locked"));list.appendChild(d);
+      }
+    });
+    $("#hintCount").textContent="("+(L.hints.length-G.hints)+")";
+  }
+};
+function toggleHints(){ $("#hintPanel").classList.toggle("on");
+  if($("#hintPanel").classList.contains("on"))releaseLook(); }
+function closeHints(){ $("#hintPanel").classList.remove("on"); }
+$("#hintBtn").onclick=()=>toggleHints();
+$("#hintClose").onclick=()=>{closeHints();setTimeout(()=>requestLook(),260);};
+
+/* ============================================================
+   PAUSE / WIN / REWARDS
+   ============================================================ */
+function togglePause(){
+  if(G.state==="play"){G.state="pause";$("#pause").classList.add("on");
+    $("#pauseSub").textContent="Room "+(G.idx+1)+" — "+G.lvl.name;releaseLook();}
+  else if(G.state==="pause"){G.state="play";$("#pause").classList.remove("on");}
+}
+$("#pauseBtn").onclick=()=>togglePause();
+$("#pResume").onclick=()=>togglePause();
+$("#pRestart").onclick=()=>{$("#pause").classList.remove("on");loadLevel(G.idx);};
+$("#pHints").onclick=()=>{$("#pause").classList.remove("on");G.state="play";toggleHints();};
+$("#pQuit").onclick=()=>{$("#pause").classList.remove("on");leaveToMenu();};
+
+function leaveToMenu(){
+  G.state="menu";releaseLook();closeHints();Modal.close();
+  $("#hud").classList.remove("on");$("#touch").classList.remove("on");
+  Screens.go("levels");
+}
+
+function levelCleared(){
+  const L=G.lvl,t=G.time,par=L.par,id=G.idx+1;
+  G.state="won";releaseLook();closeHints();
+  const first=!Save.d.best[id];
+  const base=first?(26+G.idx*2):(9+Math.round(G.idx*.6));
+  let bonus=0;
+  if(t<=par)bonus=20+Math.round(25*(1-t/par));
+  else if(t<=par*1.5)bonus=8;
+  const pen=G.hints*5;
+  const total=Math.max(3,base+bonus-pen);
+  let stars=1;
+  if(t<=par*1.5)stars=2;
+  if(t<=par&&G.hints===0)stars=3;
+
+  if(!Save.d.best[id]||t<Save.d.best[id])Save.d.best[id]=Math.round(t);
+  Save.d.stars[id]=Math.max(Save.d.stars[id]||0,stars);
+  Save.d.unlocked=Math.max(Save.d.unlocked,Math.min(LEVELS.length,id+1));
+  Save.d.plays++;
+  Save.addCoins(total);
+  Save.save();
+
+  setTimeout(()=>{
+    $("#winTitle").textContent=id===LEVELS.length?"The Archive Opens":"Escaped";
+    $("#winSub").textContent=(id===LEVELS.length
+      ? "You have left every room in the building. The door behind you closes on nothing."
+      : "Room "+id+" — "+L.name);
+    const sw=$("#winStars");sw.innerHTML="";
+    for(let i=0;i<3;i++){const s=el("i",i<stars?"on":"","★");
+      s.style.animationDelay=(i*.13)+"s";sw.appendChild(s);}
+    const st=$("#winStats");st.innerHTML="";
+    const row=(a,b,c)=>{const d=el("div","stat"+(c?" tot":""));
+      d.appendChild(el("span",null,a));d.appendChild(el("b",null,b));st.appendChild(d);};
+    row("Your time",fmtTime(t)+(t<=par?"  (under par)":""));
+    row("Par time",fmtTime(par));
+    row("Best time",fmtTime(Save.d.best[id]));
+    row("Base reward","+"+base);
+    if(bonus)row("Time bonus","+"+bonus);
+    if(pen)row("Hints used ("+G.hints+")","−"+pen);
+    row("Coins earned","+"+total,true);
+    $("#wNext").style.display=id<LEVELS.length?"":"none";
+    $("#win").classList.add("on");
+    Audio_.win();
+    UI.syncCoins();
+  },900);
+}
+$("#wNext").onclick=()=>{$("#win").classList.remove("on");
+  loadLevel(Math.min(LEVELS.length-1,G.idx+1));};
+$("#wReplay").onclick=()=>{$("#win").classList.remove("on");loadLevel(G.idx);};
+$("#wMenu").onclick=()=>{$("#win").classList.remove("on");leaveToMenu();};
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+const Screens={
+  go(id){
+    G.state="menu";$("#hud").classList.remove("on");$("#touch").classList.remove("on");
+    $$(".screen").forEach(s=>s.classList.toggle("on",s.id===id));
+    if(id==="levels")renderLevels();
+    if(id==="avatars")renderAvatars();
+    if(id==="title")renderTitle();
+    UI.syncCoins();
+  }
+};
+$$("[data-back]").forEach(b=>b.onclick=()=>Screens.go("title"));
+$("#btnPlay").onclick=()=>{Audio_.init();loadLevel(Math.min(LEVELS.length,Save.d.unlocked)-1);};
+$("#btnLevels").onclick=()=>Screens.go("levels");
+$("#btnAvatars").onclick=()=>Screens.go("avatars");
+$("#btnHow").onclick=()=>Screens.go("how");
+
+function renderTitle(){
+  const done=Object.keys(Save.d.stars).length;
+  $("#titleProg").style.width=(done/LEVELS.length*100)+"%";
+  $("#titleProgTxt").textContent=done+" / "+LEVELS.length+" ROOMS ESCAPED";
+  $("#btnPlay").textContent=Save.d.unlocked>1?("Continue — Room "+Save.d.unlocked):"Begin";
+}
+
+function renderLevels(){
+  const root=$("#actList");root.innerHTML="";
+  ACTS.forEach(act=>{
+    const a=el("div","act");a.appendChild(el("h3",null,act.name));
+    const g=el("div","grid");a.appendChild(g);
+    for(let n=act.from;n<=act.to;n++){
+      const L=LEVELS[n-1],unlocked=n<=Save.d.unlocked,stars=Save.d.stars[n]||0;
+      const c=el("button","lv"+(unlocked?"":" locked")+(stars?" done":""));
+      c.appendChild(el("div","n",String(n)));
+      c.appendChild(el("div","t",unlocked?L.name:"Sealed"));
+      const m=el("div","m");
+      if(unlocked){
+        m.appendChild(el("span","stars","★".repeat(stars)+"☆".repeat(3-stars)));
+        m.appendChild(el("span",null,Save.d.best[n]?fmtTime(Save.d.best[n]):"— : —"));
+      }else m.appendChild(el("span",null,"Clear room "+(n-1)));
+      c.appendChild(m);
+      c.appendChild(el("div","tag",fmtTime(L.par)+" par"));
+      if(unlocked)c.onclick=()=>{Audio_.init();loadLevel(n-1);};
+      g.appendChild(c);
+    }
+    root.appendChild(a);
+  });
+}
+
+let avCanvases=[];
+function renderAvatars(){
+  const root=$("#avList");root.innerHTML="";avCanvases=[];
+  AVATARS.forEach(a=>{
+    const owned=Save.d.owned.includes(a.id),eq=Save.d.avatar===a.id;
+    const c=el("div","av"+(owned?" owned":" locked")+(eq?" equipped":""));
+    const cv=document.createElement("canvas");cv.width=cv.height=192;c.appendChild(cv);
+    avCanvases.push({cv,a});
+    c.appendChild(el("div","nm",a.name));
+    c.appendChild(el("div","ds",a.ds));
+    const b=el("button","btn sm act");
+    if(eq){b.textContent="Equipped";b.disabled=true;}
+    else if(owned){b.textContent="Equip";b.onclick=()=>{Save.d.avatar=a.id;Save.save();
+      Audio_.ok();renderAvatars();};}
+    else{
+      b.textContent=a.cost+" coins";
+      b.disabled=Save.d.coins<a.cost;
+      b.onclick=()=>{
+        if(Save.d.coins<a.cost)return;
+        Save.addCoins(-a.cost);Save.d.owned.push(a.id);Save.d.avatar=a.id;Save.save();
+        Audio_.coin();toast("Unlocked "+a.name,"good");renderAvatars();};
+    }
+    c.appendChild(b);root.appendChild(c);
+  });
+}
+
+/* ---------- title art ---------- */
+const tArt=$("#titleArt");let tCtx=null,motes=[];
+function sizeTitleArt(){
+  if(!tArt)return;
+  tArt.width=innerWidth;tArt.height=innerHeight;tCtx=tArt.getContext("2d");
+  motes=[];for(let i=0;i<70;i++)motes.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+    r:.5+Math.random()*1.8,s:.06+Math.random()*.28,o:.1+Math.random()*.4});
+}
+function drawTitleArt(t){
+  if(!tCtx)return;
+  const W=tArt.width,H=tArt.height;
+  tCtx.clearRect(0,0,W,H);
+  /* door silhouette */
+  const dw=Math.min(W*.32,300),dh=dw*1.6,dx=W/2-dw/2,dy=H/2-dh/2+20;
+  const g=tCtx.createLinearGradient(0,dy,0,dy+dh);
+  g.addColorStop(0,"rgba(242,169,59,.10)");g.addColorStop(1,"rgba(242,169,59,0)");
+  tCtx.fillStyle=g;tCtx.fillRect(dx,dy,dw,dh);
+  tCtx.strokeStyle="rgba(242,169,59,"+(0.13+Math.sin(t/1400)*.05)+")";tCtx.lineWidth=2;
+  tCtx.strokeRect(dx,dy,dw,dh);
+  tCtx.beginPath();tCtx.arc(W/2,dy+dh*.46,dw*.17,0,TAU);tCtx.stroke();
+  tCtx.beginPath();tCtx.arc(W/2,dy+dh*.46,dw*.09,0,TAU);tCtx.stroke();
+  for(let i=0;i<8;i++){const a=i/8*TAU+t/6000;
+    tCtx.beginPath();tCtx.moveTo(W/2+Math.cos(a)*dw*.1,dy+dh*.46+Math.sin(a)*dw*.1);
+    tCtx.lineTo(W/2+Math.cos(a)*dw*.165,dy+dh*.46+Math.sin(a)*dw*.165);tCtx.stroke();}
+  motes.forEach(m=>{
+    m.y-=m.s;if(m.y<-4){m.y=H+4;m.x=Math.random()*W;}
+    tCtx.fillStyle="rgba(255,214,140,"+m.o*.5+")";
+    tCtx.beginPath();tCtx.arc(m.x+Math.sin((t/2600)+m.y/70)*8,m.y,m.r,0,TAU);tCtx.fill();
+  });
+}
+
+/* ============================================================
+   MAIN LOOP
+   ============================================================ */
+function frame(){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.05,G.clock.getDelta());
+  G.animT+=dt;
+  const t=performance.now();
+
+  if($("#title").classList.contains("on"))drawTitleArt(t);
+  const wantLock=G.state==="play"&&!locked&&!Modal.open&&!IS_TOUCH
+                 &&!$("#hintPanel").classList.contains("on");
+  $("#lockmsg").classList.toggle("on",wantLock);
+
+  if(G.state==="play"&&!Modal.open){
+    updatePlayer(dt);
+    if(!G.started&&(Math.hypot(G.vel.x,G.vel.z)>.4||G.time>0))G.started=true;
+    G.time+=dt;
+  }else if(G.state==="play"&&Modal.open){
+    G.time+=dt;
+    G.cam.position.set(G.pos.x,G.pos.y,G.pos.z);
+  }
+
+  if(G.scene&&G.state!=="menu"){
+    G.objs.forEach(o=>{o.update&&o.update(dt);});
+    /* focus */
+    if(G.state==="play"&&!Modal.open){
+      const f=pickTarget();
+      if(f!==focused){focused=f;
+        const ch=$("#crosshair"),pr=$("#prompt");
+        if(f&&f.label){ch.classList.add("hot");pr.classList.add("on");
+          pr.innerHTML=f.label()+"  <b>["+(IS_TOUCH?"USE":"E")+"]</b>";}
+        else{ch.classList.remove("hot");pr.classList.remove("on");}
+      }else if(f&&f.label){$("#prompt").innerHTML=f.label()+"  <b>["+(IS_TOUCH?"USE":"E")+"]</b>";}
+    }
+    const tv=$("#timeVal");
+    tv.textContent=fmtTime(G.time);
+    tv.classList.toggle("over",G.lvl&&G.time>G.lvl.par);
+    G.ren.render(G.scene,G.cam);
+  }
+
+  avCanvases.forEach(o=>drawAvatar(o.cv,o.a,t));
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+Save.load();
+initGL();
+sizeTitleArt();
+UI.syncCoins();
+renderTitle();
+G.scene=new THREE.Scene();
+G.animT=0;
+frame();
+
+</script>
+</body>
+</html>
