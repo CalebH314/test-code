@@ -2,14 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Test code</title>
 <style>
-  * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
   html, body { margin:0; padding:0; overflow:hidden; background:#000; height:100%; }
-  /* only lock down touch gestures on the game view itself and the drag controls - menus/
-     scrollable panels (Garage, Settings, etc.) still need normal touch scrolling to work */
-  #c, #joystickBase, #fireBtn { touch-action:none; }
   #c { display:block; width:100vw; height:100vh; }
   #hud {
     position:fixed; top:0; left:0; width:100%; height:100%;
@@ -17,15 +12,14 @@
     text-shadow: 0 0 4px #000;
   }
   #crosshair {
-    position:absolute; top:50%; left:50%; width:26px; height:26px;
+    position:absolute; top:50%; left:50%; width:20px; height:20px;
     transform:translate(-50%,-50%);
-    border:2px solid rgba(0,255,0,0.85); border-radius:50%;
-    box-shadow:0 0 4px rgba(0,0,0,0.6);
   }
-  #crosshair:before {
-    content:''; position:absolute; top:50%; left:50%; width:4px; height:4px;
-    margin:-2px; border-radius:50%; background:#0f0;
+  #crosshair:before, #crosshair:after {
+    content:''; position:absolute; background:#0f0;
   }
+  #crosshair:before { left:9px; top:0; width:2px; height:20px; }
+  #crosshair:after { top:9px; left:0; width:20px; height:2px; }
   #topbar {
     position:absolute; top:16px; left:16px; font-size:18px; line-height:1.6;
   }
@@ -145,61 +139,13 @@
 
   #hudButtons {
     position:absolute; top:16px; left:50%; transform:translateX(-50%);
-    display:flex; gap:8px; pointer-events:auto; flex-wrap:wrap; justify-content:center; width:92vw;
+    display:flex; gap:10px; pointer-events:auto;
   }
   #hudButtons button {
-    font-family:inherit; font-size:13px; padding:10px 14px; background:rgba(0,30,0,0.8);
+    font-family:inherit; font-size:14px; padding:8px 16px; background:rgba(0,30,0,0.7);
     color:#0f0; border:2px solid #0f0; cursor:pointer;
   }
   #hudButtons button:hover { background:rgba(0,60,0,0.85); }
-
-  /* ---------- mobile touch controls ---------- */
-  #mobileRestartBtn {
-    display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,60px);
-    font-family:inherit; font-size:22px; padding:18px 46px; background:#0f0; color:#000;
-    border:none; font-weight:bold; pointer-events:auto; z-index:5;
-  }
-
-  #joystickBase {
-    position:absolute; right:26px; bottom:120px; width:150px; height:150px;
-    border:3px solid rgba(0,255,0,0.5); border-radius:50%; background:rgba(0,30,0,0.35);
-    pointer-events:auto; touch-action:none;
-  }
-  #joystickKnob {
-    position:absolute; top:50%; left:50%; width:64px; height:64px; margin:-32px;
-    border-radius:50%; background:rgba(0,255,0,0.55); border:2px solid #0f0;
-  }
-
-  #fireBtn {
-    position:absolute; left:46px; bottom:135px; width:110px; height:110px; border-radius:50%;
-    font-family:inherit; font-size:16px; font-weight:bold; line-height:1.2;
-    background:rgba(120,0,0,0.55); color:#fff; border:3px solid #f55; pointer-events:auto; touch-action:none;
-  }
-  #fireBtn.pressed { background:rgba(255,40,40,0.8); }
-
-  /* aim/look drag control: a ring appears where the finger first touches the free game
-     view (anywhere outside the joystick/fire button) and a dot tracks the drag within it,
-     giving visual feedback for the touch-look gesture that controls pitch on mobile */
-  #aimCircle {
-    display:none; position:absolute; width:110px; height:110px; margin:-55px 0 0 -55px;
-    border:2px solid rgba(0,255,0,0.4); border-radius:50%; pointer-events:none; z-index:4;
-  }
-  #aimDot {
-    display:none; position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px;
-    border-radius:50%; background:rgba(0,255,0,0.6); border:2px solid #0f0;
-    pointer-events:none; z-index:4;
-  }
-
-  #rotatePrompt {
-    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-    background:#000; color:#0f0; font-family:'Courier New',monospace; z-index:999;
-    flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;
-  }
-  #rotatePrompt .spin { font-size:60px; margin-bottom:14px; display:inline-block; animation:spinIcon 1.6s linear infinite; }
-  @keyframes spinIcon { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-  @media (orientation: landscape) and (max-height: 500px) {
-    #rotatePrompt { display:flex; }
-  }
 
   #pauseScreen {
     position:fixed; top:0; left:0; width:100%; height:100%;
@@ -339,22 +285,14 @@
 </style>
 </head>
 <body>
-<div id="rotatePrompt"><div class="spin">📱</div><div>Rotate your phone to portrait<br>(hold it the long way up)</div></div>
 <canvas id="c"></canvas>
 <div id="hud">
   <div id="hudButtons">
-    <button id="pauseBtnHud">⏸ PAUSE</button>
-    <button id="storeBtnHud">🛒 STORE</button>
+    <button id="pauseBtnHud">⏸ PAUSE (P)</button>
+    <button id="storeBtnHud">🛒 STORE (B)</button>
     <button id="exitLevelBtn" style="display:none; background:rgba(60,0,0,0.7); border-color:#f55; color:#faa;">🚪 EXIT</button>
-    <button id="mpExitBtn" style="display:none; background:rgba(60,0,0,0.7); border-color:#f55; color:#faa;">🚪 EXIT MP</button>
+    <button id="mpExitBtn" style="display:none; background:rgba(60,0,0,0.7); border-color:#f55; color:#faa;">🚪 EXIT MULTIPLAYER</button>
   </div>
-  <button id="mobileRestartBtn">🔄 RESTART</button>
-  <div id="joystickBase">
-    <div id="joystickKnob"></div>
-  </div>
-  <button id="fireBtn">🔥<br>FIRE</button>
-  <div id="aimCircle"></div>
-  <div id="aimDot"></div>
   <div id="crosshair"></div>
   <div id="topbar">
     LEVEL: <span id="levelNum">1</span><br>
@@ -392,8 +330,8 @@
     portal to advance to the next battlefield. Weaker and stronger enemy tanks await,
     and power-ups are scattered across the battlefield. Spend your score in the shop
     between levels to upgrade your tank.<br><br>
-    <b>JOYSTICK</b> (right side) drives forward/back and turns &mdash; no side strafing on mobile<br>
-    <b>FIRE</b> button (left side) shoots your cannon &nbsp; use the on-screen PAUSE/STORE buttons anytime
+    <b>WASD / ARROWS</b> move &nbsp; <b>MOUSE</b> aim<br>
+    <b>LEFT CLICK</b> or <b>SPACE</b> fire main cannon &nbsp; <b>ESC</b> release mouse
   </p>
   <div id="usernameRow">
     CALLSIGN: <input id="usernameInput" maxlength="16" autocomplete="off" placeholder="Tank1234">
@@ -527,15 +465,6 @@
 
   // ---------- basic setup ----------
   const canvas = document.getElementById('c');
-
-  // mobile build: there's no mouse to lock, and iOS Safari doesn't implement the Pointer
-  // Lock API at all (calling the real thing would throw and crash every menu transition
-  // that touches it). Every other system in this file still calls requestPointerLock()/
-  // exitPointerLock() to know when gameplay is "engaged" vs a menu is open, so instead of
-  // touching every call site we just make both safe no-ops.
-  canvas.requestPointerLock = function () {};
-  document.exitPointerLock = function () {};
-
   const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -737,152 +666,6 @@
   document.addEventListener('pointerlockchange', () => {
     pointerLocked = document.pointerLockElement === canvas;
   });
-
-  // ---------- mobile touch controls: joystick (forward/back + rotate) and fire button ----------
-  // joyX/joyY are normalized -1..1. Y drives forward/back (simulated as W/S key state so all
-  // the existing momentum/acceleration movement code works unchanged); X now drives rotation
-  // (yaw) directly every frame instead of strafing - there is no lateral/side movement anymore.
-  let joyX = 0, joyY = 0;
-  const JOY_ROTATE_SPEED = 2.4; // radians/sec at full stick deflection
-
-  (function setupJoystick() {
-    const base = document.getElementById('joystickBase');
-    const knob = document.getElementById('joystickKnob');
-    let touchId = null;
-    const maxDist = 55;
-
-    function setKnob(dx, dz) {
-      const dist = Math.min(maxDist, Math.hypot(dx, dz));
-      const ang = Math.atan2(dz, dx);
-      const kx = Math.cos(ang) * dist, kz = Math.sin(ang) * dist;
-      knob.style.transform = `translate(${kx}px, ${kz}px)`;
-      joyX = kx / maxDist;
-      joyY = kz / maxDist;
-    }
-    function resetKnob() {
-      knob.style.transform = 'translate(0px, 0px)';
-      joyX = 0; joyY = 0;
-    }
-
-    base.addEventListener('touchstart', e => {
-      e.preventDefault();
-      const t = e.changedTouches[0];
-      touchId = t.identifier;
-      const rect = base.getBoundingClientRect();
-      setKnob(t.clientX - (rect.left + rect.width/2), t.clientY - (rect.top + rect.height/2));
-    }, { passive:false });
-
-    window.addEventListener('touchmove', e => {
-      if (touchId === null) return;
-      for (const t of e.changedTouches) {
-        if (t.identifier !== touchId) continue;
-        e.preventDefault();
-        const rect = base.getBoundingClientRect();
-        setKnob(t.clientX - (rect.left + rect.width/2), t.clientY - (rect.top + rect.height/2));
-      }
-    }, { passive:false });
-
-    function endTouch(e) {
-      if (touchId === null) return;
-      for (const t of e.changedTouches) {
-        if (t.identifier === touchId) { touchId = null; resetKnob(); }
-      }
-    }
-    window.addEventListener('touchend', endTouch, { passive:true });
-    window.addEventListener('touchcancel', endTouch, { passive:true });
-  })();
-
-  (function setupFireButton() {
-    const btn = document.getElementById('fireBtn');
-    let touchId = null;
-    btn.addEventListener('touchstart', e => {
-      e.preventDefault();
-      touchId = e.changedTouches[0].identifier;
-      firePressed = true;
-      btn.classList.add('pressed');
-    }, { passive:false });
-    function release(e) {
-      if (touchId === null) return;
-      for (const t of e.changedTouches) {
-        if (t.identifier === touchId) {
-          touchId = null;
-          firePressed = false;
-          btn.classList.remove('pressed');
-        }
-      }
-    }
-    btn.addEventListener('touchend', release, { passive:true });
-    btn.addEventListener('touchcancel', release, { passive:true });
-  })();
-
-  // ---------- mobile look/aim control ----------
-  // The joystick only ever drove yaw (turning) and forward/back movement - there was no way
-  // to control pitch (vertical look) at all, so pitch sat frozen at 0 forever and shots could
-  // never be aimed up or down. This is what made aim "feel off". Dragging a finger anywhere on
-  // the free game view (i.e. not on the joystick or fire button) now works like a touch mouse:
-  // it turns/looks using the same yaw/pitch the desktop mousemove handler drives. An "aim
-  // circle" ring appears at the touch origin with a dot tracking the drag, mirroring the
-  // joystick's visual language.
-  (function setupLookControl() {
-    const ring = document.getElementById('aimCircle');
-    const dot = document.getElementById('aimDot');
-    const joyBase = document.getElementById('joystickBase');
-    const fireBtnEl = document.getElementById('fireBtn');
-    const RING_RADIUS = 55;
-    let touchId = null, lastX = 0, lastY = 0, originX = 0, originY = 0;
-
-    function inRect(el, x, y) {
-      const r = el.getBoundingClientRect();
-      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-    }
-
-    canvas.addEventListener('touchstart', e => {
-      if (touchId !== null || uiOpen) return;
-      const t = e.changedTouches[0];
-      if (inRect(joyBase, t.clientX, t.clientY) || inRect(fireBtnEl, t.clientX, t.clientY)) return;
-      touchId = t.identifier;
-      originX = lastX = t.clientX;
-      originY = lastY = t.clientY;
-      ring.style.left = originX + 'px';
-      ring.style.top = originY + 'px';
-      ring.style.display = 'block';
-      dot.style.left = originX + 'px';
-      dot.style.top = originY + 'px';
-      dot.style.display = 'block';
-    }, { passive:true });
-
-    window.addEventListener('touchmove', e => {
-      if (touchId === null) return;
-      for (const t of e.changedTouches) {
-        if (t.identifier !== touchId) continue;
-        const sens = gameSettings.sensitivity * 0.0026;
-        const dx = t.clientX - lastX, dy = t.clientY - lastY;
-        yaw -= dx * sens;
-        pitch += (gameSettings.invertY ? 1 : -1) * dy * sens;
-        pitch = Math.max(-1.2, Math.min(1.2, pitch));
-        lastX = t.clientX; lastY = t.clientY;
-
-        const odx = t.clientX - originX, ody = t.clientY - originY;
-        const dist = Math.min(RING_RADIUS, Math.hypot(odx, ody));
-        const ang = Math.atan2(ody, odx);
-        dot.style.left = (originX + Math.cos(ang) * dist) + 'px';
-        dot.style.top = (originY + Math.sin(ang) * dist) + 'px';
-      }
-    }, { passive:true });
-
-    function endTouch(e) {
-      if (touchId === null) return;
-      for (const t of e.changedTouches) {
-        if (t.identifier === touchId) {
-          touchId = null;
-          ring.style.display = 'none';
-          dot.style.display = 'none';
-        }
-      }
-    }
-    window.addEventListener('touchend', endTouch, { passive:true });
-    window.addEventListener('touchcancel', endTouch, { passive:true });
-  })();
 
   // ---------- game settings (persisted separately from account progress) ----------
   const SETTINGS_KEY = 'tt_settings_v1';
@@ -2483,8 +2266,7 @@
         gameActive = false;
         uiOpen = true;
         document.exitPointerLock();
-        showMsg('TANK DESTROYED', 999999);
-        document.getElementById('mobileRestartBtn').style.display = 'block';
+        showMsg('TANK DESTROYED - Press R to restart', 999999);
       }
     }
     updateHealthBar();
@@ -2506,12 +2288,9 @@
     // dying only resets the current level, not overall progress/score
     uiOpen = false;
     canvas.requestPointerLock();
-    document.getElementById('mobileRestartBtn').style.display = 'none';
     buildLevel(level);
     gameActive = true;
   }
-  document.getElementById('mobileRestartBtn').addEventListener('click', restartGame);
-  document.getElementById('mobileRestartBtn').addEventListener('touchend', e => { e.preventDefault(); restartGame(); });
 
   function startGame() {
     applyAccountStatsToPlayer();
@@ -2530,7 +2309,6 @@
     score = 0;
     document.getElementById('score').textContent = score;
     document.getElementById('exitLevelBtn').style.display = 'none';
-    document.getElementById('mobileRestartBtn').style.display = 'none';
     updateStartCoinsDisplay();
     tutorialActive = false;
     hideTutorialBanner();
@@ -2550,9 +2328,9 @@
   let tutorialStep = 0;
   const TUTORIAL_TOTAL_STEPS = 3;
   const TUTORIAL_TEXT = {
-    1: 'STEP 1/3 &mdash; MOVEMENT: Push the <b>right joystick</b> up/down to drive forward and backward. Push it left/right to <b>turn</b> your tank (there\'s no side-to-side strafing on mobile). Drive to the glowing blue portal ahead.',
-    2: 'STEP 2/3 &mdash; COMBAT: Tap and hold the <b>FIRE</b> button (left side) to shoot your cannon. Destroy the stationary target tank, then head to the portal.',
-    3: 'STEP 3/3 &mdash; GEAR UP: Obstacles block shots and movement &mdash; use them for cover. Drive over the glowing cube to grab a powerup, then reach the portal to finish.'
+    1: 'STEP 1/3 &mdash; MOVEMENT: Use <b>WASD</b> or the <b>ARROW KEYS</b> to move, and your <b>MOUSE</b> to aim. Walk to the glowing blue portal ahead.',
+    2: 'STEP 2/3 &mdash; COMBAT: Use <b>LEFT CLICK</b> or <b>SPACE</b> to fire your cannon. Destroy the stationary target tank, then head to the portal.',
+    3: 'STEP 3/3 &mdash; GEAR UP: Obstacles block shots and movement &mdash; use them for cover. Walk over the glowing cube to grab a powerup, then reach the portal to finish.'
   };
 
   function showTutorialBanner(step) {
@@ -3098,13 +2876,6 @@
 
   function updatePlayer(dt) {
     if (!player.alive) return;
-
-    // mobile joystick: forward/back becomes simulated W/S key state (reuses all the existing
-    // acceleration/momentum code below untouched); left/right turns the tank directly instead
-    // of strafing, since there's no lateral movement on the mobile control scheme
-    keys['KeyW'] = joyY < -0.15;
-    keys['KeyS'] = joyY > 0.15;
-    if (Math.abs(joyX) > 0.08) yaw -= joyX * JOY_ROTATE_SPEED * dt;
 
     yawGroup.rotation.y = yaw;
     pitchGroup.rotation.x = pitch;
